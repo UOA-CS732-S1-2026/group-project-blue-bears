@@ -6,8 +6,8 @@ import './AuthPages.css'
 function RegisterPage() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
   const handleRegister = () => {
@@ -61,10 +61,15 @@ function RegisterPage() {
           <button className="auth-btn" onClick={handleRegister}>
             Create account
           </button>
+
+          <p className="auth-switch">
+            Already have an account? <a href="/login" className="auth-link">Login</a>
+          </p>
         </div>
       </main>
       <footer className="footer" />
     </div>
   )
 }
+
 export default RegisterPage
