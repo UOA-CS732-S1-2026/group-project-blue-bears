@@ -1,8 +1,14 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+
 function App() {
   return (
-    <div>
-      <h1>Type-of-War</h1>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<div>Landing Page</div>} />
+        <Route path="/login" element={<div>Login Page</div>} />
+        <Route path="/register" element={<div>Register Page</div>} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
