@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import AuthHeader from '../components/AuthHeader'
 import AuthInput from '../components/AuthInput'
+import './AuthPages.css'
 
 function LoginPage() {
   const [username, setUsername] = useState('')
@@ -54,7 +55,7 @@ function LoginPage() {
           </p>
         </div>
       </main>
-      <footer className="auth-footer" />
+      <footer className="footer" />
     </div>
   )
 }

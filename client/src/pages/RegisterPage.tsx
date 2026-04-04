@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import AuthHeader from '../components/AuthHeader'
 import AuthInput from '../components/AuthInput'
+import './AuthPages.css'
 
 function RegisterPage() {
   const [firstName, setFirstName] = useState('')
@@ -62,7 +63,7 @@ function RegisterPage() {
           </button>
         </div>
       </main>
-      <footer className="auth-footer" />
+      <footer className="footer" />
     </div>
   )
 }
