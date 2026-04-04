@@ -1,0 +1,152 @@
+/* Auth root */
+.auth-root {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Main */
+.auth-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+}
+
+/* Card */
+.auth-card {
+  width: 100%;
+  max-width: 580px;
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 40px 44px 44px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Title / subtitle */
+.auth-title {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.auth-subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-top: -8px;
+}
+
+/* Field */
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.auth-field-row {
+  display: flex;
+  gap: 16px;
+}
+
+.auth-field-row .auth-field {
+  flex: 1;
+}
+
+.auth-label {
+  font-size: 13px;
+  letter-spacing: 0.03em;
+}
+
+.auth-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.auth-input::placeholder {
+  color: var(--text-muted);
+}
+
+.auth-input:focus {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: #222638;
+}
+
+/* Remember me + forgot password row */
+.auth-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.auth-remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.auth-remember input[type='checkbox'] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent-red);
+  cursor: pointer;
+}
+
+/* Links */
+.auth-link {
+  font-size: 13px;
+  color: var(--accent-blue);
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+
+.auth-link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+/* Button */
+.auth-btn {
+  width: 100%;
+  padding: 16px;
+  background: var(--accent-red);
+  border: none;
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.auth-btn:hover {
+  background: var(--accent-red-hover);
+}
+
+.auth-btn:active {
+  transform: scale(0.98);
+}
+
+/* Switch Line */
+.auth-switch {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}
