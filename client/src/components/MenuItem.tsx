@@ -4,9 +4,9 @@ interface MenuItemProps {
 
 function MenuItem({ name }: MenuItemProps) {
     return (
-        <div className="menu-item">
+        <button className="menu-item">
             <span className="menu-text">{ name }</span>
-        </div>
+        </button>
     )
 }
 

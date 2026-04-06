@@ -1,6 +1,6 @@
 .menu-container {
     width: 100%;
-    margin-top: auto;
+    margin-top: 12vh;
     margin-bottom: auto;
     display: flex;
     flex-direction: column;
@@ -11,6 +11,10 @@
 .menu-item {
     filter: drop-shadow(#D23318 0px 0px 5px);
     font-size: 1.5rem;
+    border: none;
+    color: #FFFFFF;
+    text-align: left;
+    font: inherit;
     padding-top: 2vh;
     padding-bottom: 1vh;
     padding-left: 2vw;
@@ -23,7 +27,7 @@
 .menu-item:hover {
     width: 50vw;
     background-color: #D29418;
-    filter: drop-shadow(#D29418 0px 0px 5px);
+    filter: drop-shadow(#D29418 0px 0px 10px);
 }
 
 .menu-text {
