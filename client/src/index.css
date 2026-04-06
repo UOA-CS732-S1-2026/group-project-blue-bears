@@ -1,1 +1,78 @@
-@import "tailwindcss";
+:root {
+  --bg-primary: #0b0d14;
+  --bg-card: #181b24;
+  --bg-input: #1e2230;
+  --accent-red: #e84b3a;
+  --accent-red-hover: #d03e2e;
+  --accent-yellow: #f0c040;
+  --accent-blue: #4a9eff;
+  --accent-green: #4caf50;
+  --text-primary: #ffffff;
+  --text-muted: #7a8399;
+  --border: rgba(255, 255, 255, 0.1);
+  --font-mono: 'Courier New', 'Lucida Console', monospace;
+  --grid-color: rgba(255, 255, 255, 0.025);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-primary);
+  background-image:
+    linear-gradient(var(--grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+  background-size: 40px 40px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+/* Header */
+.header {
+  height: 80px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  flex-shrink: 0;
+}
+
+.header-logo {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-primary);
+  text-transform: uppercase;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.header-actions a {
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 14px;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.header-actions a:hover {
+  background: var(--bg-input);
+}
+
+/* Footer */
+.footer {
+  height: 60px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
