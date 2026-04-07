@@ -1,10 +1,11 @@
 interface MenuItemProps {
     name: string;
+    onClick?: () => void;
 }
 
-function MenuItem({ name }: MenuItemProps) {
+function MenuItem({ name, onClick }: MenuItemProps) {
     return (
-        <button className="menu-item">
+        <button className="menu-item" onClick={onClick}>
             <span className="menu-text">{ name }</span>
         </button>
     )
