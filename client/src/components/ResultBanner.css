@@ -1,0 +1,90 @@
+.result-banner {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  padding: 32px 40px;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(-12px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.result-banner--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Victory */
+.result-banner--victory {
+  background: linear-gradient(135deg, #1a3a28 0%, #2d5a3d 60%, #1e4530 100%);
+  border-color: #4caf7d;
+  box-shadow: 0 0 40px rgba(76, 175, 100, 0.25), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.result-banner--victory .result-banner__glow {
+  background: radial-gradient(ellipse at 50% 0%, rgba(76, 175, 100, 0.3) 0%, transparent 70%);
+}
+
+.result-banner--victory .result-banner__title {
+  color: #a8ffc4;
+  text-shadow: 0 0 30px rgba(76, 175, 100, 0.6);
+}
+
+/* Defeat */
+.result-banner--defeat {
+  background: linear-gradient(135deg, #3a1a1a 0%, #5a2d2d 60%, #451e1e 100%);
+  border-color: #cf6679;
+  box-shadow: 0 0 40px rgba(207, 102, 121, 0.25), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.result-banner--defeat .result-banner__glow {
+  background: radial-gradient(ellipse at 50% 0%, rgba(207, 102, 121, 0.3) 0%, transparent 70%);
+}
+
+.result-banner--defeat .result-banner__title {
+  color: #ffb3be;
+  text-shadow: 0 0 30px rgba(207, 102, 121, 0.6);
+}
+
+/* Draw */
+.result-banner--draw {
+  background: linear-gradient(135deg, #252535 0%, #3a3a55 60%, #2a2a42 100%);
+  border-color: #7b82c9;
+  box-shadow: 0 0 40px rgba(123, 130, 201, 0.25), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.result-banner--draw .result-banner__glow {
+  background: radial-gradient(ellipse at 50% 0%, rgba(123, 130, 201, 0.3) 0%, transparent 70%);
+}
+
+.result-banner--draw .result-banner__title {
+  color: #c0c5f5;
+  text-shadow: 0 0 30px rgba(123, 130, 201, 0.6);
+}
+
+.result-banner__glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.result-banner__title {
+  font-family: "Orbitron", monospace;
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  margin: 0 0 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.result-banner__subtitle {
+  font-family: "Share Tech Mono", monospace;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0;
+  letter-spacing: 0.04em;
+  position: relative;
+  z-index: 1;
+}
