@@ -1,4 +1,6 @@
 
+import heroImage from "../assets/hero.png";
+
 interface LobbyCardProps {
     name: string;
     rank: number;
@@ -15,8 +17,8 @@ function LobbyCard({ name, rank, wins }: LobbyCardProps) {
                 <div id="wins">{`WINS: ${wins}`}</div>
                 <div id="view-profile">VIEW PROFILE</div>
             </div>
-            <div className="lobby-card-profile">
-                <div>test1</div>
+            <div className="lobby-card-right">
+                <img className="lobby-card-image" src={heroImage} alt="Player profile banner" />
             </div>
         </div>
     )
