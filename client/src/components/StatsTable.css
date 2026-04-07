@@ -1,0 +1,117 @@
+.stats-table__wrapper {
+  background: rgba(10, 14, 20, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 28px 36px 24px;
+  backdrop-filter: blur(8px);
+}
+
+.stats-table__heading {
+  font-family: "Orbitron", monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  text-align: center;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin: 0 0 20px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.stats-table__heading--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Share Tech Mono", monospace;
+}
+
+.stats-table__th {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 6px 0 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stats-table__th--metric {
+  text-align: left;
+  color: rgba(255, 255, 255, 0.85);
+  width: 40%;
+}
+
+.stats-table__th--you {
+  text-align: center;
+  color: #f5a623;
+  width: 30%;
+}
+
+.stats-table__th--opponent {
+  text-align: center;
+  color: #e05c6a;
+  width: 30%;
+}
+
+/* Rows */
+.stats-table__row {
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.stats-table__row--visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.stats-table__metric {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 14px 0;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.stats-table__you {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.stats-table__opponent {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.55);
+  text-align: center;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Duration */
+.stats-table__duration {
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  margin-top: 18px;
+  letter-spacing: 0.06em;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.stats-table__duration--visible {
+  opacity: 1;
+}
+
+.stats-table__duration-value {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 700;
+}
