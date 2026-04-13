@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import LobbyExitModal from '../components/LobbyExitModal'
-import LobbyHeader from '../components/LobbyHeader'
 import LobbyPlayerCard, { type LobbyPlayer } from '../components/LobbyPlayerCard'
+import PageHeader from '../components/PageHeader'
 import './LobbyPage.css'
 
 const LOBBY_BASE_WIDTH = 1280
@@ -70,11 +70,14 @@ function LobbyPage() {
           }}
         >
           <div className="lobby-shell">
-            <LobbyHeader
+            <PageHeader
               title="Lobby: LOBBYNAME"
-              userWins="N/A"
-              userName="Login"
               onExit={() => setShowExitDialog(true)}
+              className="lobby-header"
+              titleClassName="lobby-title"
+              rightContentClassName="lobby-header-right"
+              guestBadge={{ topLabel: 'WINS: N/A', bottomLabel: 'LOGIN' }}
+              guestBadgeClassName="lobby-user-badge"
             />
 
             <main className="lobby-board">
@@ -88,7 +91,13 @@ function LobbyPage() {
                   <LobbyPlayerCard
                     key={player.name}
                     player={player}
-                    onViewProfile={() => navigate('/profile&match_history')}
+                    onViewProfile={() =>
+                      navigate('/profile&match_history', {
+                        state: {
+                          profileName: player.name,
+                        },
+                      })
+                    }
                   />
                 ))}
               </section>

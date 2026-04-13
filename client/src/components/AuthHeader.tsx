@@ -1,18 +1,20 @@
+import PageHeader from './PageHeader'
+
 interface AuthHeaderProps {
   showAuth?: boolean
 }
 
 function AuthHeader({ showAuth = false }: AuthHeaderProps) {
   return (
-    <header className="header">
-      <span className="header-logo">TYPE-OF-WAR</span>
-      {showAuth && (
-        <div className="header-actions">
-          <a href="/register">Sign Up</a>
-          <a href="/login">Login</a>
-        </div>
-      )}
-    </header>
+    <PageHeader
+      className="header"
+      leftContentClassName="header-left"
+      titleClassName="header-title"
+      rightContentClassName="header-right"
+      leftContent={<span className="header-logo">TYPE-OF-WAR</span>}
+      guestActions={showAuth ? { signUpHref: '/register', signInHref: '/login' } : undefined}
+      guestActionsClassName={showAuth ? 'header-actions' : undefined}
+    />
   )
 }
 
