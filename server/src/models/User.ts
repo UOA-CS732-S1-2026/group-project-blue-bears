@@ -1,6 +1,20 @@
-const mongoose = require('mongoose');
+import mongoose, { Document, Schema } from 'mongoose';
 
-const UserSchema = new mongoose.Schema(
+interface IUser extends Document {
+    username: string;
+    email: string;
+    passwordHash: string;
+    stats: {
+        matchesPlayed: number;
+        matchesWon: number;
+        bestWpm: number;
+        avgWpm: number;
+    };
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+const UserSchema = new Schema<IUser>(
     {
         username: {
             type: String,
@@ -19,7 +33,6 @@ const UserSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
-        // Cached stats for quick reads and leaderboard usage.
         stats: {
             matchesPlayed: { type: Number, default: 0 },
             matchesWon: { type: Number, default: 0 },
@@ -30,4 +43,6 @@ const UserSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-module.exports = mongoose.models.User || mongoose.model('User', UserSchema);
+const User = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
+
+export { User };

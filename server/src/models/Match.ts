@@ -1,14 +1,19 @@
-const mongoose = require('mongoose');
+import mongoose, { Document, Schema, ObjectId } from 'mongoose';
 
-const PlayerSnapshotSchema = new mongoose.Schema(
+interface IPlayerSnapshot {
+    userId: ObjectId;
+    username: string;
+    wpm: number;
+    accuracy: number;
+}
+
+const PlayerSnapshotSchema = new Schema<IPlayerSnapshot>(
     {
-        // ObjectId reference to User
         userId: {
-            type: mongoose.Schema.Types.ObjectId,
+            type: Schema.Types.ObjectId,
             ref: 'User',
             required: true,
         },
-        // Snapshot username captured at match time
         username: {
             type: String,
             required: true,
@@ -25,15 +30,23 @@ const PlayerSnapshotSchema = new mongoose.Schema(
     { _id: false }
 );
 
-const MatchSchema = new mongoose.Schema(
+interface IMatch extends Document {
+    passage: string;
+    winnerId?: ObjectId;
+    player1: IPlayerSnapshot;
+    player2: IPlayerSnapshot;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+const MatchSchema = new Schema<IMatch>(
     {
         passage: {
             type: String,
             required: true,
         },
-        // ObjectId reference to User for quick winner lookup
         winnerId: {
-            type: mongoose.Schema.Types.ObjectId,
+            type: Schema.Types.ObjectId,
             ref: 'User',
         },
         player1: {
@@ -53,4 +66,6 @@ MatchSchema.index({ 'player1.userId': 1 });
 MatchSchema.index({ 'player2.userId': 1 });
 MatchSchema.index({ createdAt: -1 });
 
-module.exports = mongoose.models.Match || mongoose.model('Match', MatchSchema);
+const Match = mongoose.models.Match || mongoose.model<IMatch>('Match', MatchSchema);
+
+export { Match };
