@@ -1,9 +1,11 @@
 import express from "express";
+import passageRoutes from "./routes/passageRoutes";
 
 const app = express();
 const PORT = 5000;
 
 app.use(express.json());
+app.use("/api/passage", passageRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server is running");
