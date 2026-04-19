@@ -4,6 +4,8 @@ import RegisterPage from './pages/RegisterPage'
 import LandingPage from './pages/LandingPage'
 import LobbyPage from './pages/LobbyPage'
 import ResultPage from './pages/ResultPage'
+import JoinLobbyCodePage from './pages/JoinLobbyCodePage'
+import JoinLobbyNamePage from './pages/JoinLobbyNamePage'
 
 function ResultRoute() {
   const navigate = useNavigate()
@@ -27,6 +29,8 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        {/* <Route path="/join" element={<JoinLobbyCodePage />} />
+        <Route path="/join/name" element={<JoinLobbyNamePage />} /> */}
         <Route path="/lobby" element={<LobbyPage />} />
         <Route path="/result" element={<ResultRoute />} />
       </Routes>
