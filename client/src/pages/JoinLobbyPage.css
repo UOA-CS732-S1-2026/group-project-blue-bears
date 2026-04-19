@@ -1,0 +1,65 @@
+.join-card {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%;
+  max-width: 500px;
+  height: 250px;
+  background: var(--bg-card);
+  border-radius: 18px;
+  padding: 24px;
+  align-items: center;
+  justify-content: center;
+}
+
+.join-input {
+  width: 350px;
+  align-self: center;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px 20px;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text-primary);
+  outline: none;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.join-input::placeholder {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.join-input:focus {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: #222638;
+}
+
+.join-btn {
+  width: 350px;
+  align-self: center;
+  padding: 18px;
+  background: var(--accent-red);
+  border: none;
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.join-btn:hover {
+  background: var(--accent-yellow);
+}
+
+.join-btn:active {
+  transform: scale(0.98);
+}
