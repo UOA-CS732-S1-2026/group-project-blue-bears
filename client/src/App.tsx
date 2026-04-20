@@ -7,6 +7,7 @@ import ResultPage from './pages/ResultPage'
 import JoinLobbyCodePage from './pages/JoinLobbyCodePage'
 import JoinLobbyNamePage from './pages/JoinLobbyNamePage'
 import LeaderboardPage from './pages/LeaderboardPage'
+import GameGraphicsTestPage from './pages/GameGraphicsTestPage'
 
 function ResultRoute() {
   const navigate = useNavigate()
@@ -35,6 +36,7 @@ function App() {
         <Route path="/lobby" element={<LobbyPage />} />
         <Route path="/result" element={<ResultRoute />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
+        <Route path="/testing" element={<GameGraphicsTestPage />} />
       </Routes>
     </BrowserRouter>
   )
