@@ -137,7 +137,7 @@
 }
 
 .auth-btn:hover {
-  background: var(--accent-red-hover);
+  background: var(--accent-yellow);
 }
 
 .auth-btn:active {
