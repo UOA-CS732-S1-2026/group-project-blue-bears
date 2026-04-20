@@ -1,5 +1,4 @@
 export interface Player {
-  rank: number
   name: string
   code: string
   avgWpm: number
@@ -10,6 +9,8 @@ export interface Player {
   isMe?: boolean
 }
 
+export type FilterType = 'AVG WPM' | 'ACCURACY' | 'WINS'
+
 function getRankStyle(rank: number): string {
   if (rank === 1) return 'rank-badge rank-badge--gold'
   if (rank === 2) return 'rank-badge rank-badge--silver'
@@ -17,11 +18,11 @@ function getRankStyle(rank: number): string {
   return 'rank-badge rank-badge--blue'
 }
 
-function LeaderboardRow({ player }: { player: Player }) {
+function LeaderboardRow({ player, rank, activeFilter }: { player: Player; rank: number; activeFilter: FilterType }) {
   return (
     <div className={`lb-row ${player.isMe ? 'lb-row--me' : ''}`}>
       <div className="lb-col lb-col--player">
-        <span className={getRankStyle(player.rank)}>{player.rank}</span>
+        <span className={getRankStyle(rank)}>{rank}</span>
         <div className="lb-avatar">
           {player.avatarUrl
             ? <img src={player.avatarUrl} alt={player.name} />
@@ -33,9 +34,15 @@ function LeaderboardRow({ player }: { player: Player }) {
           <span className="lb-player-code">{player.code}</span>
         </div>
       </div>
-      <span className="lb-col lb-col--wpm lb-wpm-value">{player.avgWpm}</span>
-      <span className="lb-col lb-col--accuracy">{player.accuracy}%</span>
-      <span className="lb-col lb-col--wins">{player.wins}</span>
+      <span className={`lb-col lb-col--wpm ${activeFilter === 'AVG WPM' ? 'lb-value' : ''}`}>
+        {player.avgWpm}
+      </span>
+      <span className={`lb-col lb-col--accuracy ${activeFilter === 'ACCURACY' ? 'lb-value' : ''}`}>
+        {player.accuracy}%
+      </span>
+      <span className={`lb-col lb-col--wins ${activeFilter === 'WINS' ? 'lb-value' : ''}`}>
+        {player.wins}
+      </span>
       <span className="lb-col lb-col--total">{player.totalMatch}</span>
     </div>
   )
