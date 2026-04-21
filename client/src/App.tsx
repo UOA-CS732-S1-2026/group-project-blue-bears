@@ -1,16 +1,16 @@
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
-import LoginPage from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
-import LandingPage from './pages/LandingPage'
-import LobbyPage from './pages/LobbyPage'
-import ResultPage from './pages/ResultPage'
-import JoinLobbyCodePage from './pages/JoinLobbyCodePage'
-import JoinLobbyNamePage from './pages/JoinLobbyNamePage'
-import LeaderboardPage from './pages/LeaderboardPage'
-import GameGraphicsTestPage from './pages/GameGraphicsTestPage'
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import LandingPage from "./pages/LandingPage";
+import LobbyPage from "./pages/LobbyPage";
+import ResultPage from "./pages/ResultPage";
+import JoinLobbyCodePage from "./pages/JoinLobbyCodePage";
+import JoinLobbyNamePage from "./pages/JoinLobbyNamePage";
+import LeaderboardPage from "./pages/LeaderboardPage";
+import GameGraphicsTestPage from "./pages/GameGraphicsTestPage";
 
 function ResultRoute() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   return (
     <ResultPage
@@ -19,9 +19,9 @@ function ResultRoute() {
       opponentStats={{ wpm: 110, accuracy: 85 }}
       duration="0:21"
       onPlayAgain={() => {}}
-      onMainMenu={() => navigate('/login')}
+      onMainMenu={() => navigate("/login")}
     />
-  )
+  );
 }
 
 function App() {
@@ -39,7 +39,7 @@ function App() {
         <Route path="/testing" element={<GameGraphicsTestPage />} />
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;
