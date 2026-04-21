@@ -13,8 +13,8 @@ import { useEffect, useRef } from "react";
 import spritesheetImage from "../sprites/animations.png";
 import spritesheet_animations from "../sprites/animations.json";
 import { CreateRope, UpdateRope } from "./RopeUtil";
-import backgroundImage from "../assets/arena.png";
-import ropeTexture from "../assets/rope.png";
+import backgroundImage from "../assets/arena2.png";
+import ropeTexture from "../assets/rope2.png";
 
 import "./GameCanvas.css";
 
@@ -108,17 +108,17 @@ function GameCanvas() {
       const redSprite = createAnimatedSprite(
         spritesheet.animations["player-pull-red"],
         150, 150,
-        ...NDC(-0.6, -0.23)
+        ...NDC(-0.6, -0.18)
       )
 
       const blueSprite = createAnimatedSprite(
         spritesheet.animations["player-pull-blue"],
         150, 150,
-        ...NDC(0.6, -0.23),
+        ...NDC(0.6, -0.18),
         true
       )
 
-      const rope = CreateRope(...NDC(-1.1, -0.2), ...NDC(1.1, -0.2), 60);
+      const rope = CreateRope(...NDC(-1.1, -0.15), ...NDC(1.1, -0.15), 60);
 
       // Temporary pins - just for testing.
       rope.particles[14].pinned = true;
@@ -129,7 +129,7 @@ function GameCanvas() {
       const meshRope = new MeshRope({
         texture: ropeTextureAsset,
         points: rope.points,
-        textureScale: 0.25,
+        textureScale: 1,
       });
 
       // Add graphics to scene
@@ -138,7 +138,7 @@ function GameCanvas() {
         meshRope,
         redSprite,
         blueSprite,
-        graphics,
+        //graphics,
       );
 
       // Main update loop
