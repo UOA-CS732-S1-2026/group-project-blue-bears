@@ -51,7 +51,23 @@ function GameCanvas() {
     return app;
   };
 
+  const getCanvasPointerPosition = (
+    pointerEvent: PointerEvent,
+    canvasElement: HTMLCanvasElement,
+  ) => {
+    const rect = canvasElement.getBoundingClientRect();
+    const scaleX = canvasElement.width / rect.width;
+    const scaleY = canvasElement.height / rect.height;
+
+    return {
+      x: (pointerEvent.clientX - rect.left) * scaleX,
+      y: (pointerEvent.clientY - rect.top) * scaleY,
+    };
+  };
+
   useEffect(() => {
+    let detachDragHandlers = () => {};
+
     (async () => {
       if (!canvas.current) {
         return;
@@ -74,27 +90,25 @@ function GameCanvas() {
       backgroundSprite.setSize(app.screen.width, app.screen.height);
 
       const redSprite = createAnimatedSprite(
-        spritesheet.animations["player-pull"],
-        150,
-        150, // WIDTH, HEIGHT
-        ...NDC(-0.6, -0.18),
+        spritesheet.animations["player-pull"], // ANIMATION
+        150, 150, // WIDTH, HEIGHT
+        ...NDC(-0.6, -0.18), // POSITION
       );
       redSprite.tint = 'red';
 
       const blueSprite = createAnimatedSprite(
         spritesheet.animations["player-pull"],
-        150,
-        150,
+        150, 150,
         ...NDC(0.6, -0.18),
         true, // Flip horizontally
       );
       blueSprite.tint = 'blue'
 
-      const rope = CreateRope(...NDC(-1.1, -0.15), ...NDC(1.1, -0.15), 60);
+      const rope = CreateRope(...NDC(-1.1, -0.15), ...NDC(1.1, -0.15), 20);
 
       // Temporary pins - just for testing.
-      rope.particles[14].pinned = true;
-      rope.particles[46].pinned = true;
+      rope.particles[5].pinned = true;
+      rope.particles[15].pinned = true;
 
       // MeshRope for stylization
       const ropeTextureAsset = await Assets.load(ropeTexture);
@@ -120,18 +134,25 @@ function GameCanvas() {
         UpdateRope(rope, dt);
 
         RopeNodeVisualiser.clear();
-        RopeNodeVisualiser.setStrokeStyle(0xff0000);
-        RopeNodeVisualiser.moveTo(rope.points[0].x, rope.points[0].y);
         for (let i = 1; i < rope.points.length; i++) {
-          RopeNodeVisualiser.lineTo(rope.points[i].x, rope.points[i].y).circle(
-            rope.points[i].x,
-            rope.points[i].y,
-            5,
-          );
+          const from = rope.points[i - 1];
+          const to = rope.points[i];
+
+          const lineStyle = 0x00ff00
+          const circleStyle = rope.particles[i].pinned ? 0xff0000 : 0x00ff00;
+          RopeNodeVisualiser
+            .setStrokeStyle(lineStyle)
+            .moveTo(from.x, from.y)
+            .lineTo(to.x, to.y)
+            .stroke();
+          RopeNodeVisualiser
+            .setStrokeStyle(circleStyle)
+            .circle(to.x, to.y, 5)
+            .stroke();
         }
-        RopeNodeVisualiser.stroke();
       });
     })();
+
   }, []);
 
   return <canvas className="game-canvas" ref={canvas} />;
