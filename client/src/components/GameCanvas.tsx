@@ -3,24 +3,25 @@ import {
   Assets,
   Sprite,
   Spritesheet,
-  AnimatedSprite,
   Graphics,
   MeshRope,
-  type AnimatedSpriteFrames,
 } from "pixi.js";
 
 import { useEffect, useRef } from "react";
 import spritesheetImage from "../sprites/animations.png";
 import spritesheet_animations from "../sprites/animations.json";
 import { CreateRope, UpdateRope } from "./RopeUtil";
-import backgroundImage from "../assets/arena2.png";
+import backgroundImage from "../assets/arena3.png";
 import ropeTexture from "../assets/rope2.png";
+import { createAnimatedSprite } from "./GraphicsUtil";
 
 import "./GameCanvas.css";
 
 function GameCanvas() {
   // Reference to HTML canvas element for rendering scene.
   const canvas = useRef<HTMLCanvasElement | null>(null);
+
+  // Pixi.js application instance.
   let app: Application | null;
 
   /* Convert to normalized device coordinates */
@@ -34,56 +35,23 @@ function GameCanvas() {
     return [posX, posY] as const;
   };
 
-  const initApp = async (canvas : HTMLCanvasElement): Promise<Application | null> =>  {
+  const initApp = async (
+    canvas: HTMLCanvasElement,
+  ): Promise<Application | null> => {
     if (!canvas) return null;
 
     const app = new Application();
     await app.init({
       canvas: canvas,
-      backgroundColor: 0xFFFFFF,
+      backgroundColor: 0xffffff,
       width: canvas.clientWidth || 800,
       height: canvas.clientHeight || 480,
     });
 
     return app;
-  }
-
-  const createAnimatedSprite = (
-    frames: AnimatedSpriteFrames,
-    sizeX: number,
-    sizeY: number,
-    x: number,
-    y: number,
-    flipX: boolean = false
-  ): AnimatedSprite => {
-    const sprite = new AnimatedSprite(frames);
-    sprite.anchor.set(0.5, 0.5);
-    sprite.scale.x = flipX ? -1 : 1;
-    sprite.setSize(sizeX, sizeY);
-    sprite.position.set(x, y);
-    sprite.animationSpeed = 0.12;
-    sprite.play();
-    return sprite;
-  }
-
-  /* Changes animation of a sprite.
-    Usage e.g.
-
-    changeAnimation(redSprite, spritesheet.animations['player-pull-blue'], 0.12);
-
-    const changeAnimation = (
-        sprite : AnimatedSprite,
-        frames : AnimatedSpriteFrames,
-        speed : number) =>
-    {
-        sprite.textures = frames;
-        sprite.animationSpeed = speed;
-        sprite.play();
-    }
-  */
+  };
 
   useEffect(() => {
-
     (async () => {
       if (!canvas.current) {
         return;
@@ -92,7 +60,7 @@ function GameCanvas() {
       app = await initApp(canvas.current);
       if (!app) return;
 
-      const graphics = new Graphics();
+      const RopeNodeVisualiser = new Graphics();
 
       // Load spritesheet in
       const texture = await Assets.load(spritesheetImage);
@@ -107,16 +75,18 @@ function GameCanvas() {
 
       const redSprite = createAnimatedSprite(
         spritesheet.animations["player-pull-red"],
-        150, 150,
-        ...NDC(-0.6, -0.18)
-      )
+        150,
+        150, // WIDTH, HEIGHT
+        ...NDC(-0.6, -0.18),
+      );
 
       const blueSprite = createAnimatedSprite(
         spritesheet.animations["player-pull-blue"],
-        150, 150,
+        150,
+        150,
         ...NDC(0.6, -0.18),
-        true
-      )
+        true, // Flip horizontally
+      );
 
       const rope = CreateRope(...NDC(-1.1, -0.15), ...NDC(1.1, -0.15), 60);
 
@@ -138,7 +108,7 @@ function GameCanvas() {
         meshRope,
         redSprite,
         blueSprite,
-        //graphics,
+        RopeNodeVisualiser,
       );
 
       // Main update loop
@@ -147,20 +117,19 @@ function GameCanvas() {
         const dt = delta.deltaMS / 1000;
         UpdateRope(rope, dt);
 
-        graphics.clear();
-        graphics.setStrokeStyle(0xff0000);
-
-        graphics.moveTo(rope.points[0].x, rope.points[0].y);
+        RopeNodeVisualiser.clear();
+        RopeNodeVisualiser.setStrokeStyle(0xff0000);
+        RopeNodeVisualiser.moveTo(rope.points[0].x, rope.points[0].y);
         for (let i = 1; i < rope.points.length; i++) {
-          graphics
-            .lineTo(rope.points[i].x, rope.points[i].y)
-            .circle(rope.points[i].x, rope.points[i].y, 5);
+          RopeNodeVisualiser.lineTo(rope.points[i].x, rope.points[i].y).circle(
+            rope.points[i].x,
+            rope.points[i].y,
+            5,
+          );
         }
-        graphics.stroke();
+        RopeNodeVisualiser.stroke();
       });
-
     })();
-    
   }, []);
 
   return <canvas className="game-canvas" ref={canvas} />;
