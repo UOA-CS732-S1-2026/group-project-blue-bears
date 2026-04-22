@@ -8,8 +8,8 @@ import {
 } from "pixi.js";
 
 import { useEffect, useRef } from "react";
-import spritesheetImage from "../sprites/animations.png";
-import spritesheet_animations from "../sprites/animations.json";
+import spritesheetImage from "../sprites/animation.png";
+import spritesheet_animation_meta from "../sprites/animation.json";
 import { CreateRope, UpdateRope } from "./RopeUtil";
 import backgroundImage from "../assets/arena3.png";
 import ropeTexture from "../assets/rope2.png";
@@ -64,7 +64,7 @@ function GameCanvas() {
 
       // Load spritesheet in
       const texture = await Assets.load(spritesheetImage);
-      const spritesheet = new Spritesheet(texture, spritesheet_animations);
+      const spritesheet = new Spritesheet(texture, spritesheet_animation_meta);
       await spritesheet.parse();
 
       // Add background
@@ -74,19 +74,21 @@ function GameCanvas() {
       backgroundSprite.setSize(app.screen.width, app.screen.height);
 
       const redSprite = createAnimatedSprite(
-        spritesheet.animations["player-pull-red"],
+        spritesheet.animations["player-pull"],
         150,
         150, // WIDTH, HEIGHT
         ...NDC(-0.6, -0.18),
       );
+      redSprite.tint = 'red';
 
       const blueSprite = createAnimatedSprite(
-        spritesheet.animations["player-pull-blue"],
+        spritesheet.animations["player-pull"],
         150,
         150,
         ...NDC(0.6, -0.18),
         true, // Flip horizontally
       );
+      blueSprite.tint = 'blue'
 
       const rope = CreateRope(...NDC(-1.1, -0.15), ...NDC(1.1, -0.15), 60);
 
