@@ -1,4 +1,5 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
+require('ts-node/register/transpile-only');
 
 const path = require('path');
 const { execFile } = require('child_process');
@@ -6,8 +7,8 @@ const { promisify } = require('util');
 const mongoose = require('mongoose');
 
 const connectDB = require('../../config/db');
-const User = require('../../models/User');
-const Match = require('../../models/Match');
+const { User } = require('../../src/models/User');
+const { Match } = require('../../src/models/Match');
 const {
     createUser,
     findUserByEmail,
@@ -142,7 +143,31 @@ const run = async () => {
             passwordHash: 'hash-model',
         });
         assert(modelUser.stats && modelUser.stats.matchesPlayed === 0, 'User model stats defaults missing');
-        results.userModel = { status: 'passed', details: 'User.create works and stats defaults are present' };
+        assert(
+            typeof modelUser.profileImageUrl === 'string' && modelUser.profileImageUrl.length > 0,
+            'User model profileImageUrl default missing or empty'
+        );
+
+        // User with explicit firstName, lastName, and custom profileImageUrl
+        const profileUser = await User.create({
+            username: `${USER_PREFIX}profile_${stamp}`,
+            email: `${USER_PREFIX}profile_${stamp}@${EMAIL_DOMAIN}`,
+            passwordHash: 'hash-profile',
+            firstName: 'Test',
+            lastName: 'Runner',
+            profileImageUrl: 'https://placehold.co/150?text=TR',
+        });
+        assert(profileUser.firstName === 'Test', 'User firstName did not persist');
+        assert(profileUser.lastName === 'Runner', 'User lastName did not persist');
+        assert(
+            profileUser.profileImageUrl === 'https://placehold.co/150?text=TR',
+            'User custom profileImageUrl did not persist'
+        );
+
+        results.userModel = {
+            status: 'passed',
+            details: 'User.create works, stats defaults present, profileImageUrl default and custom values verified, firstName/lastName persist',
+        };
 
         // userDataAccess verification
         const userA = await createUser({

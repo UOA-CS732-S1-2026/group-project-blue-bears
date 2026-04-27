@@ -1,4 +1,4 @@
-const User = require('../src/models/User');
+const { User } = require('../src/models/User');
 
 // Creates a user document. stats uses schema defaults and is not maintained here.
 const createUser = (data) => User.create(data);

@@ -1,9 +1,14 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+const DEFAULT_PROFILE_IMAGE_URL = 'https://placehold.co/150x150/cccccc/666666?text=User';
+
 interface IUser extends Document {
     username: string;
     email: string;
     passwordHash: string;
+    firstName?: string;
+    lastName?: string;
+    profileImageUrl: string;
     stats: {
         matchesPlayed: number;
         matchesWon: number;
@@ -32,6 +37,19 @@ const UserSchema = new Schema<IUser>(
         passwordHash: {
             type: String,
             required: true,
+        },
+        firstName: {
+            type: String,
+            trim: true,
+        },
+        lastName: {
+            type: String,
+            trim: true,
+        },
+        profileImageUrl: {
+            type: String,
+            trim: true,
+            default: DEFAULT_PROFILE_IMAGE_URL,
         },
         stats: {
             matchesPlayed: { type: Number, default: 0 },

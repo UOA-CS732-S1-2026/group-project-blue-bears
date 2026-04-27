@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
-const User = require('../models/User');
-const Match = require('../models/Match');
+const { User } = require('../src/models/User');
+const { Match } = require('../src/models/Match');
 
 const buildUserMatchQuery = (objectId) => ({
     $or: [
