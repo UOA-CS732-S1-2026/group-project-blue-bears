@@ -4,11 +4,9 @@
   --bg-primary: #0b0d14;
   --bg-card: linear-gradient(#272931, #17191D);;
   --bg-input: #1e2230;
-  --accent-red: #e84b3a;
-  --accent-red-hover: #d03e2e;
-  --accent-yellow: #f0c040;
+  --accent-red: #D23318;
+  --accent-yellow: #D29418;
   --accent-blue: #4a9eff;
-  --accent-green: #4caf50;
   --text-primary: #ffffff;
   --text-muted: #7a8399;
   --border: rgba(255, 255, 255, 0.1);
@@ -37,9 +35,9 @@ body {
   height: 80px;
   background: var(--bg-card);
   border-bottom: 1px solid var(--border);
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   padding: 0 32px;
   flex-shrink: 0;
 }
@@ -52,12 +50,25 @@ body {
   text-transform: uppercase;
 }
 
-.header-actions {
+.header-center {
   display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-primary);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   gap: 12px;
 }
 
-.header-actions a {
+.header-right a {
   color: var(--text-primary);
   text-decoration: none;
   font-size: 14px;
@@ -67,8 +78,26 @@ body {
   transition: background 0.2s;
 }
 
-.header-actions a:hover {
+.header-right a:hover {
   background: var(--bg-input);
+}
+
+.header-exit-btn {
+  padding: 10px 24px;
+  background: var(--accent-red);
+  border: none;
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.header-exit-btn:hover {
+  background: var(--accent-yellow);
 }
 
 /* Footer */

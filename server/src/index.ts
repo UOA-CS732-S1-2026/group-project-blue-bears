@@ -6,6 +6,7 @@ import authRoutes from './routes/auth';
 const connectDB: () => Promise<void> = require("../config/db");
 
 dotenv.config();
+import passageRoutes from "./routes/passageRoutes";
 
 const app = express();
 const port = Number(process.env.PORT) || 5000;
@@ -14,6 +15,7 @@ app.use(cors({
   origin: 'http://localhost:5173',
 }));
 app.use(express.json());
+app.use("/api/passage", passageRoutes);
 
 app.use('/auth', authRoutes);
 
@@ -22,7 +24,12 @@ app.get('/', (req, res) => {
 });
 
 const startServer = async () => {
-  await connectDB();
+  try {
+    await connectDB();
+  } catch (err: unknown) {
+    console.error("Database connection unavailable. Continuing without DB-backed routes:", err);
+  }
+
   app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
   });
