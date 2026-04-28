@@ -1,16 +1,36 @@
 import { useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import AuthHeader from '../components/AuthHeader'
 import AuthInput from '../components/AuthInput'
+import { loginUser } from '../services/authService'
 import './AuthPages.css'
 
 function LoginPage() {
-  const [username, setUsername] = useState('')
+  const navigate = useNavigate()
+  const location = useLocation()
+  const successMessage = location.state?.message
+
+  const [emailOrUsername, setEmailOrUsername] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleLogin = () => {
-    // TODO: connect to backend
-    console.log({ username, password, rememberMe })
+  const handleLogin = async () => {
+    setError('')
+    setLoading(true)
+
+    try {
+      const data = await loginUser({ emailOrUsername: emailOrUsername, password })
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('userId', data.userId)
+      localStorage.setItem('email', data.email)
+      navigate('/')
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -21,11 +41,14 @@ function LoginPage() {
           <h1 className="auth-title">Welcome Back</h1>
           <p className="auth-subtitle">Log in to your account to continue</p>
 
+          <p style={{ color: 'var(--accent-red)', fontSize: '13px', minHeight: '18px' }}>{error}</p>
+          <p style={{ color: 'var(--accent-green)', fontSize: '13px', minHeight: '18px' }}>{successMessage}</p>
+
           <AuthInput
             label="Username or email"
-            placeholder="Enter your username"
-            value={username}
-            onChange={e => setUsername(e.target.value)}
+            placeholder="Enter your username or email"
+            value={emailOrUsername}
+            onChange={e => setEmailOrUsername(e.target.value)}
           />
 
           <AuthInput
@@ -48,7 +71,9 @@ function LoginPage() {
             <a href="#" className="auth-link">Forgot Your Password?</a>
           </div>
 
-          <button className="auth-btn" onClick={handleLogin}>Login</button>
+          <button className="auth-btn" onClick={handleLogin} disabled={loading}>
+            {loading ? 'Logging in...' : 'Login'}
+          </button>
 
           <p className="auth-switch">
             No account? <a href="/register" className="auth-link">Sign up</a>
