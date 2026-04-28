@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import LandingPage from './pages/LandingPage'
@@ -7,18 +7,29 @@ import ResultPage from './pages/ResultPage'
 import JoinLobbyCodePage from './pages/JoinLobbyCodePage'
 import JoinLobbyNamePage from './pages/JoinLobbyNamePage'
 import LeaderboardPage from './pages/LeaderboardPage'
+import { type ResultOutcome } from './components/ResultBanner'
+import { type PlayerStats } from './components/StatsTable'
+
+interface ResultRouteState {
+  outcome: ResultOutcome
+  playerStats: PlayerStats
+  opponentStats: PlayerStats
+  duration: string
+}
 
 function ResultRoute() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const routeState = (location.state as Partial<ResultRouteState> | null) ?? {}
 
   return (
     <ResultPage
-      outcome="victory"
-      playerStats={{ wpm: 120, accuracy: 95 }}
-      opponentStats={{ wpm: 110, accuracy: 85 }}
-      duration="0:21"
-      onPlayAgain={() => {}}
-      onMainMenu={() => navigate('/login')}
+      outcome={routeState.outcome ?? 'victory'}
+      playerStats={routeState.playerStats ?? { wpm: 120, accuracy: 95 }}
+      opponentStats={routeState.opponentStats ?? { wpm: 110, accuracy: 85 }}
+      duration={routeState.duration ?? '0:21'}
+      onPlayAgain={() => navigate('/lobby')}
+      onMainMenu={() => navigate('/')}
     />
   )
 }

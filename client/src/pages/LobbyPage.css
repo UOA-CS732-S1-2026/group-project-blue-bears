@@ -315,6 +315,65 @@
   cursor: pointer;
 }
 
+.lobby-start:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.lobby-race-status,
+.lobby-race-countdown,
+.lobby-progress-line,
+.lobby-opponent-finished {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  color: #fff;
+  text-shadow: 0 0 1.5px #fff;
+}
+
+.lobby-race-status {
+  margin-bottom: 10px;
+  font-size: 20px;
+}
+
+.lobby-race-countdown {
+  margin-bottom: 10px;
+  font-size: 32px;
+}
+
+.lobby-race-panel {
+  width: 708px;
+  margin: 0 auto 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lobby-passage {
+  margin: 0;
+  min-height: 52px;
+  padding: 10px;
+  color: #fff;
+  border: 1px solid #343642;
+  background: rgba(7, 6, 25, 0.88);
+  font-family: var(--font-mono);
+  line-height: 1.35;
+}
+
+.lobby-race-input {
+  min-height: 94px;
+  padding: 10px;
+  border: 1px solid #6f7180;
+  background: #070619;
+  color: #fff;
+  resize: vertical;
+  font-family: var(--font-mono);
+}
+
+.lobby-race-input:disabled {
+  opacity: 0.65;
+}
+
 .lobby-modal-backdrop {
   position: fixed;
   inset: 0;
