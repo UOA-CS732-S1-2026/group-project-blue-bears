@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors";
 import authRoutes from './routes/auth';
 
 const connectDB: () => Promise<void> = require("../config/db");
@@ -10,6 +11,9 @@ import passageRoutes from "./routes/passageRoutes";
 const app = express();
 const port = Number(process.env.PORT) || 5000;
 
+app.use(cors({
+  origin: 'http://localhost:5173',
+}));
 app.use(express.json());
 app.use("/api/passage", passageRoutes);
 
