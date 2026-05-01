@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
-const User = require('../models/User');
-const Match = require('../models/Match');
+const { User } = require('../src/models/User');
+const { Match } = require('../src/models/Match');
 
 const buildUserMatchQuery = (objectId) => ({
     $or: [
@@ -37,6 +37,13 @@ const getUserProfileSummary = async (userId) => {
                         '$player2.wpm',
                     ],
                 },
+                userAccuracy: {
+                    $cond: [
+                        { $eq: ['$player1.userId', objectId] },
+                        '$player1.accuracy',
+                        '$player2.accuracy',
+                    ],
+                },
             },
         },
         {
@@ -45,6 +52,8 @@ const getUserProfileSummary = async (userId) => {
                 totalMatches: { $sum: 1 },
                 totalWins: { $sum: '$isWin' },
                 bestWpm: { $max: '$userWpm' },
+                avgWpm: { $avg: '$userWpm' },
+                avgAccuracy: { $avg: '$userAccuracy' },
             },
         },
     ]);
@@ -55,6 +64,8 @@ const getUserProfileSummary = async (userId) => {
         totalMatches: summary ? summary.totalMatches : 0,
         totalWins: summary ? summary.totalWins : 0,
         bestWpm: summary ? summary.bestWpm : 0,
+        avgWpm: summary ? Math.round(summary.avgWpm) : 0,
+        avgAccuracy: summary ? Math.round(summary.avgAccuracy) : 0,
     };
 };
 

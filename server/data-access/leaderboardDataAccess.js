@@ -1,4 +1,4 @@
-const Match = require('../models/Match');
+const { Match } = require('../src/models/Match');
 
 // Leaderboard metric: each user's best single-match WPM.
 // We expand fixed 1v1 structure (player1/player2) into per-user rows, then aggregate.

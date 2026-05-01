@@ -16,7 +16,7 @@ function LandingPage() {
         <MenuItem name="JOIN LOBBY" onClick={() => navigate('/join')} />
         <MenuItem name="LEADERBOARD" onClick={() => navigate('/leaderboard')} />
         <MenuItem name="SETTINGS" />
-        <MenuItem name="PROFILE" />
+        <MenuItem name="PROFILE" onClick={() => navigate('/profile')} />
         <MenuItem name="MATCH HISTORY" />
       </div>
 
