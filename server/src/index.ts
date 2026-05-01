@@ -4,6 +4,7 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import authRoutes from './routes/auth';
+import protectedRoutes from './routes/protectedRoutes';
 import { registerSocketHandlers } from './socket/roomManager';
 
 const connectDB: () => Promise<void> = require("../config/db");
@@ -27,6 +28,7 @@ app.use(express.json());
 app.use("/api/passage", passageRoutes);
 
 app.use('/auth', authRoutes);
+app.use('/api', protectedRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Server is running' });
