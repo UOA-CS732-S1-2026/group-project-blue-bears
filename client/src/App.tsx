@@ -1,28 +1,13 @@
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import LandingPage from './pages/LandingPage'
 import LobbyPage from './pages/LobbyPage'
-import ResultPage from './pages/ResultPage'
 import JoinLobbyCodePage from './pages/JoinLobbyCodePage'
 import JoinLobbyNamePage from './pages/JoinLobbyNamePage'
 import LeaderboardPage from './pages/LeaderboardPage'
 import GamePage from './pages/GamePage'
-
-function ResultRoute() {
-  const navigate = useNavigate()
-
-  return (
-    <ResultPage
-      outcome="victory"
-      playerStats={{ wpm: 120, accuracy: 95 }}
-      opponentStats={{ wpm: 110, accuracy: 85 }}
-      duration="0:21"
-      onPlayAgain={() => {}}
-      onMainMenu={() => navigate('/login')}
-    />
-  )
-}
+import ResultRoute from "./pages/Resultroute";
 
 function App() {
   return (
