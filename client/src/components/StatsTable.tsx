@@ -4,51 +4,57 @@ import "./StatsTable.css";
 export interface PlayerStats {
   wpm: number;
   accuracy: number;
+  inaccuracies: number;
 }
 
 interface StatsTableProps {
   playerStats: PlayerStats;
   opponentStats: PlayerStats;
-  duration: string; 
+  duration: string;
 }
 
 interface StatRowProps {
   label: string;
   playerValue: string;
   opponentValue: string;
-  delay: number;
+  visible: boolean;
 }
 
-const StatRow: React.FC<StatRowProps> = ({ label, playerValue, opponentValue, delay }) => {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const t = setTimeout(() => setVisible(true), delay);
-    return () => clearTimeout(t);
-  }, [delay]);
-
-  return (
-    <tr className={`stats-table__row ${visible ? "stats-table__row--visible" : ""}`}>
-      <td className="stats-table__metric">{label}</td>
-      <td className="stats-table__you">{playerValue}</td>
-      <td className="stats-table__opponent">{opponentValue}</td>
-    </tr>
-  );
-};
+const StatRow: React.FC<StatRowProps> = ({ label, playerValue, opponentValue, visible }) => (
+  <tr className={`stats-table__row ${visible ? "stats-table__row--visible" : ""}`}>
+    <td className="stats-table__metric">{label}</td>
+    <td className="stats-table__you">{playerValue}</td>
+    <td className="stats-table__opponent">{opponentValue}</td>
+  </tr>
+);
 
 const StatsTable: React.FC<StatsTableProps> = ({ playerStats, opponentStats, duration }) => {
-  const [headerVisible, setHeaderVisible] = useState(false);
-  const [durationVisible, setDurationVisible] = useState(false);
+  const [headingVisible, setHeadingVisible] = useState(false);
+  const [rowsVisible, setRowsVisible] = useState([false, false, false]);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setHeaderVisible(true), 300);
-    const t2 = setTimeout(() => setDurationVisible(true), 700);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    const headingTimer = setTimeout(() => setHeadingVisible(true), 200);
+    const row1Timer = setTimeout(() => {
+      setRowsVisible([true, false, false]);
+    }, 400);
+    const row2Timer = setTimeout(() => {
+      setRowsVisible([true, true, false]);
+    }, 600);
+    const row3Timer = setTimeout(() => {
+      setRowsVisible([true, true, true]);
+    }, 800);
+
+    return () => {
+      clearTimeout(headingTimer);
+      clearTimeout(row1Timer);
+      clearTimeout(row2Timer);
+      clearTimeout(row3Timer);
+    };
   }, []);
 
   return (
     <div className="stats-table__wrapper">
-      <h2 className={`stats-table__heading ${headerVisible ? "stats-table__heading--visible" : ""}`}>
+      <h2 className={`stats-table__heading ${headingVisible ? "stats-table__heading--visible" : ""}`}>
         Battle Statistics
       </h2>
 
@@ -65,18 +71,24 @@ const StatsTable: React.FC<StatsTableProps> = ({ playerStats, opponentStats, dur
             label="WPM"
             playerValue={String(playerStats.wpm)}
             opponentValue={String(opponentStats.wpm)}
-            delay={400}
+            visible={rowsVisible[0]}
           />
           <StatRow
             label="Accuracy"
             playerValue={`${playerStats.accuracy}%`}
             opponentValue={`${opponentStats.accuracy}%`}
-            delay={520}
+            visible={rowsVisible[1]}
+          />
+          <StatRow
+            label="Inaccuracies"
+            playerValue={String(playerStats.inaccuracies)}
+            opponentValue={String(opponentStats.inaccuracies)}
+            visible={rowsVisible[2]}
           />
         </tbody>
       </table>
 
-      <div className={`stats-table__duration ${durationVisible ? "stats-table__duration--visible" : ""}`}>
+      <div className="stats-table__duration">
         Duration: <span className="stats-table__duration-value">{duration}</span>
       </div>
     </div>
