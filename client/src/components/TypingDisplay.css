@@ -1,0 +1,56 @@
+.typing-display {
+  background: rgba(10, 15, 22, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 28px 32px;
+  width: min(100%, 1170px);
+  max-width: 1170px;
+  box-sizing: border-box;
+  margin: 0 auto;
+}
+
+.typing-display__text {
+  font-family: "Share Tech Mono", "Courier New", monospace;
+  font-size: 1.15rem;
+  line-height: 2;
+  letter-spacing: 0.04em;
+  word-break: break-word;
+  user-select: none;
+}
+
+/* Character states */
+.typing-display__char--pending {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.typing-display__char--correct {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.typing-display__char--incorrect {
+  color: #e05c6a;
+  background: rgba(224, 92, 106, 0.15);
+  border-radius: 2px;
+}
+
+/* Blinking cursor */
+.typing-display__char--cursor {
+  position: relative;
+}
+
+.typing-display__char--cursor::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10%;
+  height: 80%;
+  width: 2px;
+  background: #f5a623;
+  border-radius: 1px;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}

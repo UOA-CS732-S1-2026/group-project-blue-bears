@@ -1,18 +1,32 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import AuthHeader from '../components/AuthHeader'
 import AuthInput from '../components/AuthInput'
+import { registerUser } from '../services/authService'
 import './AuthPages.css'
 
 function RegisterPage() {
+  const navigate = useNavigate()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleRegister = () => {
-    // TODO: connect to backend
-    console.log({ firstName, lastName, username, email, password })
+  const handleRegister = async () => {
+    setError('')
+    setLoading(true)
+
+    try {
+      await registerUser({ firstName, lastName, username, email, password })
+      navigate('/login', { state: { message: 'Account created! Please log in.' } })
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -20,6 +34,9 @@ function RegisterPage() {
       <AuthHeader />
       <main className="auth-main">
         <div className="auth-card">
+
+          <p style={{ color: 'var(--accent-red)', fontSize: '13px', minHeight: '18px' }}>{error}</p>
+
           <div className="auth-field-row">
             <AuthInput
               label="First Name"
@@ -58,8 +75,8 @@ function RegisterPage() {
             onChange={e => setPassword(e.target.value)}
           />
 
-          <button className="auth-btn" onClick={handleRegister}>
-            Create account
+          <button className="auth-btn" onClick={handleRegister} disabled={loading}>
+            {loading ? 'Creating account...' : 'Create account'}
           </button>
 
           <p className="auth-switch">

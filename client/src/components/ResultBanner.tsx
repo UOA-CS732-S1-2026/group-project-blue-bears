@@ -17,7 +17,7 @@ const OUTCOME_CONFIG: Record<
   },
   defeat: {
     title: "Defeat",
-    subtitle: "The enemy typed faster. Better luck next time.",
+    subtitle: "Your enemy typed faster. Better luck next time.",
   },
   draw: {
     title: "Draw",
