@@ -43,6 +43,7 @@ function RegisterPage() {
               placeholder="Enter your first name"
               value={firstName}
               onChange={e => setFirstName(e.target.value)}
+              autoFocus
             />
             <AuthInput
               label="Last Name"

@@ -49,6 +49,7 @@ function LoginPage() {
             placeholder="Enter your username or email"
             value={emailOrUsername}
             onChange={e => setEmailOrUsername(e.target.value)}
+            autoFocus
           />
 
           <AuthInput
