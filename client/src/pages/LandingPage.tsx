@@ -14,10 +14,8 @@ function LandingPage() {
       <div className="menu-container">
         <MenuItem name="CREATE LOBBY" onClick={() => navigate('/lobby')} />
         <MenuItem name="JOIN LOBBY" onClick={() => navigate('/join')} />
-        <MenuItem name="LEADERBOARD" onClick={() => navigate('/leaderboard')} />
-        <MenuItem name="SETTINGS" />
         <MenuItem name="PROFILE" onClick={() => navigate('/profile')} />
-        <MenuItem name="MATCH HISTORY" />
+        <MenuItem name="LEADERBOARD" onClick={() => navigate('/leaderboard')} />
       </div>
 
       <footer className="footer" />

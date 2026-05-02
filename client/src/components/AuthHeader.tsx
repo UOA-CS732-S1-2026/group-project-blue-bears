@@ -11,7 +11,7 @@ interface AuthHeaderProps {
 function AuthHeader({ showAuth, center, exit, back }: AuthHeaderProps) {
   return (
     <header className="header">
-      <span className="header-logo">TYPE-OF-WAR</span>
+      <Link to="/" className="header-logo">TYPE-OF-WAR</Link>
 
       <div className="header-center">
         {center}
