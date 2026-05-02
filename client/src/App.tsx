@@ -6,6 +6,7 @@ import LobbyPage from './pages/LobbyPage'
 import JoinLobbyCodePage from './pages/JoinLobbyCodePage'
 import JoinLobbyNamePage from './pages/JoinLobbyNamePage'
 import LeaderboardPage from './pages/LeaderboardPage'
+import ProfilePage from './pages/ProfilePage'
 import GameGraphicsTestPage from './pages/GameGraphicsTestPage'
 import { type ResultOutcome } from './components/ResultBanner'
 import { type PlayerStats } from './components/StatsTable'
@@ -31,6 +32,7 @@ function App() {
         <Route path="/lobby" element={<LobbyPage />} />
         <Route path="/result" element={<ResultRoute />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/testing" element={<GameGraphicsTestPage />} />
         <Route path="/game" element={<GamePage />} />
       </Routes>
