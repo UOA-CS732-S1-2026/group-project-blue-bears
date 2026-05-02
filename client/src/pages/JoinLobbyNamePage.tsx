@@ -17,7 +17,7 @@ function JoinLobbyNamePage() {
 
   return (
     <div className="auth-root">
-      <AuthHeader />
+      <AuthHeader back={() => navigate('/join')}/>
 
       <main className="auth-main">
         <div className="join-card">

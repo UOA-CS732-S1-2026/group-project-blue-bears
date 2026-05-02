@@ -29,7 +29,7 @@ function JoinLobbyCodePage() {
 
   return (
     <div className="auth-root">
-      <AuthHeader />
+      <AuthHeader back={() => navigate('/')}/>
 
       <main className="auth-main">
         <div className="join-card">

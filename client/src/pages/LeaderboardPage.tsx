@@ -41,7 +41,7 @@ function LeaderboardPage() {
     <div className="lb-root">
       <AuthHeader
         center="GLOBAL LEADERBOARD"
-        exit={() => navigate('/')}
+        back={() => navigate('/')}
       />
 
       <main className="lb-main">

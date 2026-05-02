@@ -35,7 +35,7 @@ function LoginPage() {
 
   return (
     <div className="auth-root">
-      <AuthHeader />
+      <AuthHeader back={() => navigate('/')}/>
       <main className="auth-main">
         <div className="auth-card">
           <h1 className="auth-title">Welcome Back</h1>

@@ -31,7 +31,7 @@ function RegisterPage() {
 
   return (
     <div className="auth-root">
-      <AuthHeader />
+      <AuthHeader back={() => navigate('/')}/>
       <main className="auth-main">
         <div className="auth-card">
 
