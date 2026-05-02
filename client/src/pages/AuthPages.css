@@ -107,19 +107,6 @@
   cursor: pointer;
 }
 
-/* Links */
-.auth-link {
-  font-size: 13px;
-  color: var(--accent-blue);
-  text-decoration: none;
-  transition: opacity 0.15s;
-}
-
-.auth-link:hover {
-  opacity: 0.8;
-  text-decoration: underline;
-}
-
 /* Button */
 .auth-btn {
   width: 100%;

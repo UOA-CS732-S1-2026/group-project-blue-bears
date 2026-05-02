@@ -68,7 +68,6 @@ function LoginPage() {
               />
               <span>Remember Me</span>
             </label>
-            <a href="#" className="auth-link">Forgot Your Password?</a>
           </div>
 
           <button className="auth-btn" onClick={handleLogin} disabled={loading}>
