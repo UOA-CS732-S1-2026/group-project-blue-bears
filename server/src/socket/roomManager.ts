@@ -2,7 +2,10 @@
  * Manages in-memory race rooms and registers all Socket.IO race events.
  * This module owns room membership, countdown/start flow, progress updates, and race result cleanup.
  */
+import mongoose from 'mongoose';
 import { Server, Socket } from 'socket.io';
+
+const { createMatchResult } = require('../../data-access/matchDataAccess');
 
 interface JoinRoomPayload {
   roomId: string;
@@ -102,11 +105,34 @@ const cleanupRoom = (roomId: string): void => {
   rooms.delete(roomId);
 };
 
-const emitRaceResults = (io: Server, room: RoomState): void => {
+const emitRaceResults = async (io: Server, room: RoomState): Promise<void> => {
   const results = room.players.map(player => {
     const finisher = room.finishers.get(player.userId);
     return finisher ?? buildDefaultResult(player);
   });
+
+  const [p1, p2] = results;
+  if (
+    p1 && p2 &&
+    mongoose.Types.ObjectId.isValid(p1.userId) &&
+    mongoose.Types.ObjectId.isValid(p2.userId)
+  ) {
+    const winnerId =
+      p1.wpm > p2.wpm ? p1.userId :
+      p2.wpm > p1.wpm ? p2.userId :
+      undefined;
+
+    try {
+      await createMatchResult({
+        passage: room.passageText,
+        winnerId,
+        player1: { userId: p1.userId, username: p1.username, wpm: p1.wpm, accuracy: p1.accuracy },
+        player2: { userId: p2.userId, username: p2.username, wpm: p2.wpm, accuracy: p2.accuracy },
+      });
+    } catch (err) {
+      console.error('Failed to save match result:', err);
+    }
+  }
 
   io.to(room.roomId).emit('race_results', {
     roomId: room.roomId,
@@ -248,13 +274,13 @@ export const registerSocketHandlers = (io: Server): void => {
               return;
             }
 
-            emitRaceResults(io, latestRoom);
+            void emitRaceResults(io, latestRoom);
           }, 30000);
         }
       }
 
       if (room.finishers.size >= 2) {
-        emitRaceResults(io, room);
+        void emitRaceResults(io, room);
       }
     });
 
