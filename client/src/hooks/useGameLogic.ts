@@ -20,6 +20,7 @@ interface UseGameLogicReturn {
   timeLeft: number;
   timeElapsed: number;
   stats: GameStats;
+  start: (startAtMs?: number) => void;
   handleInput: (value: string) => void;
   reset: () => void;
 }
@@ -67,8 +68,16 @@ export function useGameLogic({
   const [stats, setStats] = useState<GameStats>({ wpm: 0, accuracy: 100, inaccuracies: 0 });
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const startTimeRef = useRef<number>(0);
+  const startTimeRef = useRef<number | null>(null);
   const userInputRef = useRef<string>("");
+
+  const getElapsedSeconds = useCallback(() => {
+    if (!startTimeRef.current) {
+      return 0;
+    }
+
+    return Math.min(totalSeconds, Math.floor((Date.now() - startTimeRef.current) / 1000));
+  }, [totalSeconds]);
 
   const stopGame = useCallback(
     (input: string, elapsed: number, finishedPassage: boolean) => {
@@ -81,31 +90,29 @@ export function useGameLogic({
     [passage, onGameEnd]
   );
 
-  const handleTimeElapsedUpdate = useCallback(
-    (prev: number) => {
-      const next = prev + 1;
-      setTimeLeft(totalSeconds - next);
+  const syncTimeFromClock = useCallback(() => {
+    const elapsed = getElapsedSeconds();
+    const nextTimeLeft = Math.max(0, totalSeconds - elapsed);
 
-      if (next >= totalSeconds) {
-        stopGame(userInputRef.current, next, false);
-      }
-      return next;
-    },
-    [totalSeconds, stopGame]
-  );
+    setTimeElapsed(elapsed);
+    setTimeLeft(nextTimeLeft);
+
+    if (elapsed >= totalSeconds) {
+      stopGame(userInputRef.current, elapsed, false);
+    }
+  }, [getElapsedSeconds, totalSeconds, stopGame]);
 
   // Tick every second once playing
   useEffect(() => {
     if (status !== "playing") return;
 
-    timerRef.current = setInterval(() => {
-      setTimeElapsed(handleTimeElapsedUpdate);
-    }, 1000);
+    syncTimeFromClock();
+    timerRef.current = setInterval(syncTimeFromClock, 200);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [status, handleTimeElapsedUpdate]);
+  }, [status, syncTimeFromClock]);
 
   // Sync userInputRef with userInput state
   useEffect(() => {
@@ -119,30 +126,37 @@ export function useGameLogic({
     }
   }, [userInput, timeElapsed, passage, status]);
 
+  const start = useCallback(
+    (startAtMs?: number) => {
+      if (status === "finished") {
+        return;
+      }
+
+      startTimeRef.current = startAtMs ?? Date.now();
+      setStatus("playing");
+    },
+    [status]
+  );
+
   const handleInput = useCallback(
     (value: string) => {
-      if (status === "finished") return;
+      if (status !== "playing") return;
       if (value.length > passage.length) return;
-
-      // Start timer on first keystroke
-      if (status === "idle" && value.length > 0) {
-        startTimeRef.current = Date.now();
-        setStatus("playing");
-      }
 
       setUserInput(value);
 
       // Check if passage is complete
       if (value === passage) {
-        const elapsed = timeElapsed + 1;
+        const elapsed = getElapsedSeconds();
         stopGame(value, elapsed, true);
       }
     },
-    [status, passage, timeElapsed, stopGame]
+    [status, passage, stopGame, getElapsedSeconds]
   );
 
   const reset = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
+    startTimeRef.current = null;
     setUserInput("");
     setStatus("idle");
     setTimeLeft(totalSeconds);
@@ -150,5 +164,5 @@ export function useGameLogic({
     setStats({ wpm: 0, accuracy: 100, inaccuracies: 0 });
   }, [totalSeconds]);
 
-  return { userInput, status, timeLeft, timeElapsed, stats, handleInput, reset };
+  return { userInput, status, timeLeft, timeElapsed, stats, start, handleInput, reset };
 }
