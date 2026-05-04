@@ -4,6 +4,7 @@ import RegisterPage from './pages/RegisterPage'
 import LandingPage from './pages/LandingPage'
 import LobbyPage from './pages/LobbyPage'
 import JoinLobbyCodePage from './pages/JoinLobbyCodePage'
+import JoinLobbyNamePage from './pages/JoinLobbyNamePage'
 import LeaderboardPage from './pages/LeaderboardPage'
 import ProfilePage from './pages/ProfilePage'
 import GameGraphicsTestPage from './pages/GameGraphicsTestPage'
@@ -27,6 +28,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/join" element={<JoinLobbyCodePage />} />
+        <Route path="/join/name" element={<JoinLobbyNamePage />} />
         <Route path="/lobby" element={<LobbyPage />} />
         <Route path="/result" element={<ResultRoute />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
