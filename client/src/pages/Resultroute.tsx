@@ -3,9 +3,6 @@ import ResultPage from "./ResultPage";
 import type { GameStats } from "../hooks/useGameLogic";
 
 interface ResultState {
-  roomId?: string;
-  userId?: string;
-  username?: string;
   outcome: "victory" | "defeat" | "draw";
   playerStats: GameStats;
   opponentStats: GameStats;
@@ -35,15 +32,7 @@ function ResultRoute() {
       playerStats={state.playerStats}
       opponentStats={state.opponentStats}
       duration={state.duration}
-      onPlayAgain={() =>
-        navigate("/lobby", {
-          state: {
-            code: state.roomId,
-            userId: state.userId,
-            username: state.username,
-          },
-        })
-      }
+      onPlayAgain={() => navigate("/lobby")}
       onMainMenu={() => navigate("/")}
     />
   );
