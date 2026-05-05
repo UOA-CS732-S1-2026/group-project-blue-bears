@@ -31,7 +31,7 @@ function RegisterPage() {
 
   return (
     <div className="auth-root">
-      <AuthHeader />
+      <AuthHeader back={() => navigate('/')}/>
       <main className="auth-main">
         <div className="auth-card">
 
@@ -43,6 +43,7 @@ function RegisterPage() {
               placeholder="Enter your first name"
               value={firstName}
               onChange={e => setFirstName(e.target.value)}
+              autoFocus
             />
             <AuthInput
               label="Last Name"

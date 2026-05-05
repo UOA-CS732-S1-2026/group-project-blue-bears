@@ -4,9 +4,10 @@ interface AuthInputProps {
   placeholder?: string
   value: string
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  autoFocus?: boolean
 }
 
-function AuthInput({ label, type = 'text', placeholder, value, onChange }: AuthInputProps) {
+function AuthInput({ label, type = 'text', placeholder, value, onChange, autoFocus }: AuthInputProps) {
   return (
     <div className="auth-field">
       <label className="auth-label">{label}</label>
@@ -16,6 +17,7 @@ function AuthInput({ label, type = 'text', placeholder, value, onChange }: AuthI
         placeholder={placeholder}
         value={value}
         onChange={onChange}
+        autoFocus={autoFocus}
       />
     </div>
   )

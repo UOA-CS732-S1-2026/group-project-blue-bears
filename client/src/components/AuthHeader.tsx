@@ -5,12 +5,13 @@ interface AuthHeaderProps {
   showAuth?: boolean
   center?: React.ReactNode
   exit?: () => void
+  back?: () => void
 }
 
-function AuthHeader({ showAuth, center, exit }: AuthHeaderProps) {
+function AuthHeader({ showAuth, center, exit, back }: AuthHeaderProps) {
   return (
     <header className="header">
-      <span className="header-logo">TYPE-OF-WAR</span>
+      <Link to="/" className="header-logo">TYPE-OF-WAR</Link>
 
       <div className="header-center">
         {center}
@@ -25,6 +26,9 @@ function AuthHeader({ showAuth, center, exit }: AuthHeaderProps) {
         )}
         {exit && (
           <button className="header-exit-btn" onClick={exit}>EXIT</button>
+        )}
+        {back && (
+          <button className="header-exit-btn" onClick={back}>BACK</button>
         )}
       </div>
     </header>

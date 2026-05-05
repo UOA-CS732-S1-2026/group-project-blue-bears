@@ -35,7 +35,7 @@ function LoginPage() {
 
   return (
     <div className="auth-root">
-      <AuthHeader />
+      <AuthHeader back={() => navigate('/')}/>
       <main className="auth-main">
         <div className="auth-card">
           <h1 className="auth-title">Welcome Back</h1>
@@ -49,6 +49,7 @@ function LoginPage() {
             placeholder="Enter your username or email"
             value={emailOrUsername}
             onChange={e => setEmailOrUsername(e.target.value)}
+            autoFocus
           />
 
           <AuthInput
@@ -68,7 +69,6 @@ function LoginPage() {
               />
               <span>Remember Me</span>
             </label>
-            <a href="#" className="auth-link">Forgot Your Password?</a>
           </div>
 
           <button className="auth-btn" onClick={handleLogin} disabled={loading}>
