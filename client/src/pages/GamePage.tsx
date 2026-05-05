@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import TypingDisplay from "../components/TypingDisplay";
 import { useGameLogic, formatTime } from "../hooks/useGameLogic";
 import "./GamePage.css";
@@ -8,6 +8,16 @@ const PASSAGE =
   "The journey of a thousand miles begins with a single step. Similarly, mastering typing starts with learning proper finger placement on the keyboard.";
 
 const TOTAL_SECONDS = 60;
+
+interface GameLocationState {
+  roomId?: string;
+  userId?: string;
+  username?: string;
+  passageText?: string;
+  totalSeconds?: number;
+  countdownSeconds?: number;
+  startAt?: number;
+}
 
 // Simulated opponent - swap out for real data when backend is ready
 const MOCK_OPPONENT_STATS = {
@@ -18,11 +28,20 @@ const MOCK_OPPONENT_STATS = {
 
 const GamePage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const inputRef = useRef<HTMLInputElement>(null);
+  const locationState = (location.state as GameLocationState | null) ?? {};
+  const raceStartAtRef = useRef(locationState.startAt ?? Date.now() + 3000);
+  const raceStartAt = raceStartAtRef.current;
+  const raceDuration = locationState.totalSeconds ?? TOTAL_SECONDS;
+  const racePassage = locationState.passageText ?? PASSAGE;
+  const countdownSeed = locationState.countdownSeconds ?? 3;
+  const [countdown, setCountdown] = React.useState<number | null>(null);
+  const [didStartRace, setDidStartRace] = React.useState(false);
 
-  const { userInput, status, timeLeft, stats, handleInput } = useGameLogic({
-    passage: PASSAGE,
-    totalSeconds: TOTAL_SECONDS,
+  const { userInput, status, timeLeft, stats, start, handleInput } = useGameLogic({
+    passage: racePassage,
+    totalSeconds: raceDuration,
     onGameEnd: (finalStats: typeof MOCK_OPPONENT_STATS, elapsed: number) => {
       const opponent = MOCK_OPPONENT_STATS;
 
@@ -32,6 +51,9 @@ const GamePage: React.FC = () => {
 
       navigate("/result", {
         state: {
+          roomId: locationState.roomId,
+          userId: locationState.userId,
+          username: locationState.username,
           outcome,
           playerStats: finalStats,
           opponentStats: opponent,
@@ -44,6 +66,42 @@ const GamePage: React.FC = () => {
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+    if (countdown !== null || status !== "playing") {
+      return;
+    }
+
+    // Wait for the input to become enabled, then focus it immediately at race start.
+    window.requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
+  }, [countdown, status]);
+
+  useEffect(() => {
+    const tick = () => {
+      const msUntilStart = raceStartAt - Date.now();
+
+      if (msUntilStart <= 0) {
+        setCountdown(null);
+        if (!didStartRace) {
+          start(raceStartAt);
+          setDidStartRace(true);
+        }
+        return;
+      }
+
+      const secondsLeft = Math.ceil(msUntilStart / 1000);
+      setCountdown(Math.min(countdownSeed, Math.max(1, secondsLeft)));
+    };
+
+    tick();
+    const interval = window.setInterval(tick, 100);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [countdownSeed, didStartRace, raceStartAt, start]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     handleInput(e.target.value);
@@ -64,7 +122,7 @@ const GamePage: React.FC = () => {
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck={false}
-        disabled={status === "finished"}
+        disabled={status === "finished" || countdown !== null || status !== "playing"}
         autoFocus
       />
 
@@ -87,8 +145,10 @@ const GamePage: React.FC = () => {
 
         {/* Timer */}
         <div className="game-page__timer">
-          {status === "idle" ? (
-            <span className="game-page__timer-idle">Start typing...</span>
+          {countdown !== null ? (
+            <span className="game-page__timer-value">{countdown}</span>
+          ) : status === "idle" ? (
+            <span className="game-page__timer-idle">Preparing race...</span>
           ) : (
             <span
               className={`game-page__timer-value ${
@@ -116,7 +176,7 @@ const GamePage: React.FC = () => {
         </div>
       </div>
 
-      <TypingDisplay passage={PASSAGE} userInput={userInput} />
+      <TypingDisplay passage={racePassage} userInput={userInput} />
 
       <div className="game-page__inaccuracies">
         Inaccuracies: <span>{stats.inaccuracies}</span>

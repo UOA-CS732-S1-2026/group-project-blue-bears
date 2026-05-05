@@ -10,7 +10,21 @@ const { createMatchResult } = require('../../data-access/matchDataAccess');
 interface JoinRoomPayload {
   roomId: string;
   userId: string;
-  username: string;
+  displayName?: string;
+  avatarKind?: 'guest' | 'initials';
+  username?: string;
+}
+
+interface CreateRoomPayload {
+  userId: string;
+  displayName?: string;
+  avatarKind?: 'guest' | 'initials';
+  username?: string;
+}
+
+interface ReadyUpPayload {
+  roomId: string;
+  userId: string;
 }
 
 interface StartRacePayload {
@@ -34,7 +48,9 @@ interface RaceCompletePayload {
 interface RoomPlayer {
   socketId: string;
   userId: string;
-  username: string;
+  displayName: string;
+  avatarKind: 'guest' | 'initials';
+  ready: boolean;
 }
 
 interface FinisherResult {
@@ -58,16 +74,58 @@ interface RoomState {
 const rooms = new Map<string, RoomState>();
 const socketRoomLookup = new Map<string, string>();
 
+const ROOM_CODE_LENGTH = 6;
+const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
 const DEFAULT_PASSAGE =
   'The quick brown fox jumps over the lazy dog while bright comets trace long arcs across the midnight sky.';
+const RACE_DURATION_SECONDS = 60;
+const PRE_RACE_COUNTDOWN_SECONDS = 3;
 
 const buildDefaultResult = (player: RoomPlayer): FinisherResult => ({
   userId: player.userId,
-  username: player.username,
+  username: player.displayName,
   wpm: 0,
   accuracy: 0,
   finished: false,
 });
+
+const buildRoomPlayerPayload = (player: RoomPlayer) => ({
+  userId: player.userId,
+  displayName: player.displayName,
+  avatarKind: player.avatarKind,
+  ready: player.ready,
+});
+
+const normalizePlayerMetadata = (
+  payload: { displayName?: string; avatarKind?: 'guest' | 'initials'; username?: string },
+): { displayName: string; avatarKind: 'guest' | 'initials' } => {
+  if (payload.avatarKind === 'guest') {
+    return {
+      displayName: 'GUEST',
+      avatarKind: 'guest',
+    };
+  }
+
+  const sourceName = payload.displayName || payload.username || 'PLAYER';
+  return {
+    displayName: sourceName.trim().toUpperCase() || 'PLAYER',
+    avatarKind: payload.avatarKind ?? 'initials',
+  };
+};
+
+const generateRoomCode = (): string => {
+  let roomId = '';
+
+  do {
+    roomId = Array.from({ length: ROOM_CODE_LENGTH }, () => {
+      const index = Math.floor(Math.random() * ROOM_CODE_ALPHABET.length);
+      return ROOM_CODE_ALPHABET[index];
+    }).join('');
+  } while (rooms.has(roomId));
+
+  return roomId;
+};
 
 const getOrCreateRoom = (roomId: string): RoomState => {
   const existing = rooms.get(roomId);
@@ -86,6 +144,25 @@ const getOrCreateRoom = (roomId: string): RoomState => {
 
   rooms.set(roomId, room);
   return room;
+};
+
+const emitGameStart = (io: Server, room: RoomState): void => {
+  const startAt = Date.now() + PRE_RACE_COUNTDOWN_SECONDS * 1000;
+
+  io.to(room.roomId).emit('game_start', {
+    roomId: room.roomId,
+    passageText: room.passageText,
+    totalSeconds: RACE_DURATION_SECONDS,
+    countdownSeconds: PRE_RACE_COUNTDOWN_SECONDS,
+    startAt,
+  });
+};
+
+const emitRoomState = (io: Server, room: RoomState): void => {
+  io.to(room.roomId).emit('room_state', {
+    roomId: room.roomId,
+    players: room.players.map(buildRoomPlayerPayload),
+  });
 };
 
 const cleanupRoom = (roomId: string): void => {
@@ -167,10 +244,47 @@ const startCountdown = (io: Server, room: RoomState): void => {
 
 export const registerSocketHandlers = (io: Server): void => {
   io.on('connection', (socket: Socket) => {
-    socket.on('join_room', (payload: JoinRoomPayload) => {
-      const { roomId, userId, username } = payload;
+    socket.on('create_room', (payload: CreateRoomPayload) => {
+      const { userId } = payload;
+      const { displayName, avatarKind } = normalizePlayerMetadata(payload);
 
-      if (!roomId || !userId || !username) {
+      if (!userId) {
+        socket.emit('error', { message: 'Invalid room creation payload' });
+        return;
+      }
+
+      const existingRoomId = socketRoomLookup.get(socket.id);
+      if (existingRoomId) {
+        socket.emit('room_created', { roomId: existingRoomId });
+        return;
+      }
+
+      const roomId = generateRoomCode();
+      const room = getOrCreateRoom(roomId);
+
+      room.players.push({
+        socketId: socket.id,
+        userId,
+        displayName,
+        avatarKind,
+        ready: false,
+      });
+
+      socket.join(roomId);
+      socketRoomLookup.set(socket.id, roomId);
+
+      emitRoomState(io, room);
+
+      socket.emit('room_created', {
+        roomId,
+      });
+    });
+
+    socket.on('join_room', (payload: JoinRoomPayload) => {
+      const { roomId, userId } = payload;
+      const { displayName, avatarKind } = normalizePlayerMetadata(payload);
+
+      if (!roomId || !userId) {
         socket.emit('error', { message: 'Invalid room join payload' });
         return;
       }
@@ -178,32 +292,76 @@ export const registerSocketHandlers = (io: Server): void => {
       const room = getOrCreateRoom(roomId);
 
       if (room.players.length >= 2) {
-        socket.emit('error', { message: 'Room is full' });
+        // Inform the requester that the room is full and provide a snapshot
+        socket.emit('room_full', {
+          roomId,
+          players: room.players.map(buildRoomPlayerPayload),
+        });
         return;
       }
 
       const existingPlayer = room.players.find(player => player.userId === userId);
       if (existingPlayer) {
         existingPlayer.socketId = socket.id;
+        existingPlayer.displayName = displayName;
+        existingPlayer.avatarKind = avatarKind;
+        existingPlayer.ready = false;
       } else {
         room.players.push({
           socketId: socket.id,
           userId,
-          username,
+          displayName,
+          avatarKind,
+          ready: false,
         });
       }
 
       socket.join(roomId);
       socketRoomLookup.set(socket.id, roomId);
 
+      emitRoomState(io, room);
+
+      emitRoomState(io, room);
+
       if (room.players.length === 2) {
         io.to(roomId).emit('room_ready', {
           roomId,
-          players: room.players.map(player => ({
-            userId: player.userId,
-            username: player.username,
-          })),
+          players: room.players.map(buildRoomPlayerPayload),
         });
+      }
+    });
+
+    // Allow external sockets to probe room occupancy without joining
+    socket.on('probe_room', (payload: { roomId: string }) => {
+      const { roomId } = payload;
+      const room = rooms.get(roomId);
+      socket.emit('room_probe', {
+        roomId,
+        players: room ? room.players.map(buildRoomPlayerPayload) : [],
+      });
+    });
+
+    socket.on('ready_up', (payload: ReadyUpPayload) => {
+      const room = rooms.get(payload.roomId);
+
+      if (!room) {
+        return;
+      }
+
+      const player = room.players.find(current => current.userId === payload.userId);
+      if (!player) {
+        return;
+      }
+
+      player.ready = true;
+      emitRoomState(io, room);
+
+      if (room.players.length === 2 && room.players.every(current => current.ready)) {
+        emitGameStart(io, room);
+        for (const current of room.players) {
+          current.ready = false;
+        }
+        emitRoomState(io, room);
       }
     });
 
@@ -255,7 +413,7 @@ export const registerSocketHandlers = (io: Server): void => {
 
       room.finishers.set(payload.userId, {
         userId: payload.userId,
-        username: player.username,
+        username: player.displayName,
         wpm: payload.wpm,
         accuracy: payload.accuracy,
         finished: true,
@@ -300,10 +458,25 @@ export const registerSocketHandlers = (io: Server): void => {
       socketRoomLookup.delete(socket.id);
 
       if (room.players.length > 0) {
+        room.countdownStarted = false;
+        room.raceStarted = false;
+        room.finishers.clear();
+        if (room.raceTimeout) {
+          clearTimeout(room.raceTimeout);
+          room.raceTimeout = undefined;
+        }
+
+        for (const current of room.players) {
+          current.ready = false;
+        }
+
         io.to(roomId).emit('opponent_disconnected', {
           roomId,
-          message: 'Your opponent disconnected from the race.',
+          message: 'Your opponent disconnected from the room.',
         });
+
+        emitRoomState(io, room);
+        return;
       }
 
       cleanupRoom(roomId);

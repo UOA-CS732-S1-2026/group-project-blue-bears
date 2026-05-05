@@ -1,173 +1,195 @@
+import AuthHeader from '../components/AuthHeader'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import LobbyExitModal from '../components/LobbyExitModal'
-import LobbyHeader from '../components/LobbyHeader'
 import LobbyPlayerCard, { type LobbyPlayer } from '../components/LobbyPlayerCard'
+import { getProfile } from '../services/profileService'
 import useSocket from '../hooks/useSocket'
 import './LobbyPage.css'
 
-const LOBBY_BASE_WIDTH = 1280
-const LOBBY_BASE_HEIGHT = 832
+const ACTIVE_LOBBY_CODE_KEY = 'activeLobbyCode'
+const ACTIVE_LOBBY_USER_KEY = 'activeLobbyUserId'
 
 interface RoomPlayerPayload {
   userId: string
-  username: string
-}
-
-interface RaceResultPayload {
-  userId: string
-  username: string
-  wpm: number
-  accuracy: number
-  finished: boolean
+  displayName: string
+  avatarKind: 'guest' | 'initials'
+  ready: boolean
 }
 
 interface LobbyLocationState {
   code?: string
-  guestName?: string
   userId?: string
   username?: string
 }
 
-const formatDuration = (totalSeconds: number) => {
-  const minutes = Math.floor(totalSeconds / 60)
-  const seconds = totalSeconds % 60
-  return `${minutes}:${String(seconds).padStart(2, '0')}`
+interface RoomCreatedPayload {
+  roomId: string
 }
 
-const getContiguousMatchLength = (typed: string, passage: string) => {
-  const max = Math.min(typed.length, passage.length)
-  for (let index = 0; index < max; index += 1) {
-    if (typed[index] !== passage[index]) {
-      return index
-    }
-  }
-
-  return max
+interface GameStartPayload {
+  roomId: string
+  passageText?: string
+  totalSeconds?: number
+  countdownSeconds?: number
+  startAt?: number
 }
 
 function LobbyPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { socket, connected } = useSocket()
-  const viewportRef = useRef<HTMLDivElement | null>(null)
-  const raceStartAtRef = useRef<number | null>(null)
   const locationState = (location.state as LobbyLocationState | null) ?? {}
-  const roomId = (locationState.code || 'public-room').trim().toUpperCase()
-  const username = (locationState.guestName || locationState.username || 'Player').trim().toUpperCase()
-  const userIdRef = useRef(locationState.userId || crypto.randomUUID())
+  const storedLobbyCode = sessionStorage.getItem(ACTIVE_LOBBY_CODE_KEY) || ''
+  const initialRoomId = (locationState.code || storedLobbyCode).trim().toUpperCase()
+  const [roomId, setRoomId] = useState(initialRoomId)
+  const authToken = localStorage.getItem('token')
+  const storedUserId = localStorage.getItem('userId')
+  const storedLobbyUserId = sessionStorage.getItem(ACTIVE_LOBBY_USER_KEY)
+  const userIdRef = useRef(storedUserId || locationState.userId || storedLobbyUserId || crypto.randomUUID())
+  const requestedRoomRef = useRef(false)
   const [showExitDialog, setShowExitDialog] = useState(false)
-  const [scale, setScale] = useState(1)
-  const [roomPlayers, setRoomPlayers] = useState<RoomPlayerPayload[]>([
-    { userId: userIdRef.current, username },
-  ])
-  const [roomReady, setRoomReady] = useState(false)
+  const [didCopyRoomCode, setDidCopyRoomCode] = useState(false)
+  const [identityReady, setIdentityReady] = useState(!authToken)
+  const [currentUserName, setCurrentUserName] = useState(authToken ? 'PLAYER' : 'GUEST')
+  const [currentUserAvatarKind, setCurrentUserAvatarKind] = useState<'guest' | 'initials'>(
+    authToken ? 'initials' : 'guest',
+  )
+  const [roomPlayers, setRoomPlayers] = useState<RoomPlayerPayload[]>([])
   const [statusMessage, setStatusMessage] = useState('Connecting to race server...')
-  const [countdown, setCountdown] = useState<number | null>(null)
-  const [passageText, setPassageText] = useState('')
-  const [typedText, setTypedText] = useState('')
-  const [raceStarted, setRaceStarted] = useState(false)
-  const [myProgress, setMyProgress] = useState(0)
-  const [opponentProgress, setOpponentProgress] = useState(0)
-  const [didFinish, setDidFinish] = useState(false)
-  const [opponentFinished, setOpponentFinished] = useState(false)
+  
+  const [joinRetrying, setJoinRetrying] = useState(false)
+  const probeIntervalRef = useRef<number | null>(null)
 
+  const currentUserLabel = currentUserName.trim().toUpperCase() || 'PLAYER'
+  const me = roomPlayers.find(player => player.userId === userIdRef.current)
   const opponent = roomPlayers.find(player => player.userId !== userIdRef.current)
-  const players: LobbyPlayer[] = [
-    {
-      name: username,
-      code: `#${roomId}`,
-      wins: `${Math.round(myProgress)}%`,
-      initials: username.slice(0, 2) || 'P1',
-      side: 'left',
-    },
-    {
-      name: opponent?.username || 'WAITING',
-      code: `#${roomId}`,
-      wins: `${Math.round(opponentProgress)}%`,
-      initials: (opponent?.username || 'P2').slice(0, 2),
-      side: 'right',
-    },
-  ]
+  const roomReady = roomPlayers.length === 2
+  const meReady = me?.ready ?? false
+
+  // Build player cards. If the visitor is NOT a member of the room,
+  // show the actual occupants in both slots (so a blocked 3rd can see who is in the room).
+  let players: LobbyPlayer[]
+  if (me) {
+    const opponent = roomPlayers.find(player => player.userId !== userIdRef.current)
+    players = [
+      {
+        name: currentUserLabel,
+        initials: currentUserLabel.slice(0, 2) || 'PL',
+        avatarKind: currentUserAvatarKind,
+        side: 'left',
+      },
+      {
+        name: opponent?.displayName || '?',
+        initials: opponent ? opponent.displayName.slice(0, 2).toUpperCase() : '??',
+        avatarKind: opponent ? opponent.avatarKind : 'question',
+        side: 'right',
+      },
+    ]
+  } else {
+    // Not a member — show roomPlayers[0] as left slot, roomPlayers[1] as right slot
+    const p1 = roomPlayers[0]
+    const p2 = roomPlayers[1]
+    players = [
+      {
+        name: p1?.displayName || '?',
+        initials: p1 ? p1.displayName.slice(0, 2).toUpperCase() : '??',
+        avatarKind: p1 ? p1.avatarKind : 'question',
+        side: 'left',
+      },
+      {
+        name: p2?.displayName || '?',
+        initials: p2 ? p2.displayName.slice(0, 2).toUpperCase() : '??',
+        avatarKind: p2 ? p2.avatarKind : 'question',
+        side: 'right',
+      },
+    ]
+  }
 
   const handleExitConfirm = () => {
     setShowExitDialog(false)
+    sessionStorage.removeItem(ACTIVE_LOBBY_CODE_KEY)
+    sessionStorage.removeItem(ACTIVE_LOBBY_USER_KEY)
     navigate('/')
   }
 
-  const handleStartRace = () => {
-    if (!roomReady) {
-      setStatusMessage('Waiting for an opponent to join this room.')
+  const handleCopyRoomCode = async () => {
+    if (!roomId) {
       return
     }
 
-    socket.emit('start_race', { roomId })
+    try {
+      await navigator.clipboard.writeText(roomId)
+      setDidCopyRoomCode(true)
+      window.setTimeout(() => setDidCopyRoomCode(false), 1400)
+    } catch {
+      setStatusMessage('Unable to copy the room code right now.')
+    }
   }
 
-  const handleTypingChange = (nextTypedText: string) => {
-    if (!raceStarted || !passageText || didFinish) {
+  const handleReady = () => {
+    if (!roomId) {
       return
     }
 
-    setTypedText(nextTypedText)
-    const matchedChars = getContiguousMatchLength(nextTypedText, passageText)
-    const progress = Math.round((matchedChars / passageText.length) * 100)
+    socket.emit('ready_up', {
+      roomId,
+      userId: userIdRef.current,
+    })
 
-    if (progress > myProgress) {
-      setMyProgress(progress)
-      socket.emit('progress_update', {
-        roomId,
-        userId: userIdRef.current,
-        progress,
-      })
-    }
-
-    if (matchedChars === passageText.length) {
-      const startedAt = raceStartAtRef.current || Date.now()
-      const elapsedMinutes = Math.max((Date.now() - startedAt) / 60000, 1 / 60)
-      const wordCount = passageText.trim().split(/\s+/).length
-      const calculatedWpm = Math.max(1, Math.round(wordCount / elapsedMinutes))
-      const calculatedAccuracy = Math.max(
-        0,
-        Math.min(100, Math.round((matchedChars / Math.max(nextTypedText.length, 1)) * 100)),
-      )
-
-      setMyProgress(100)
-      setDidFinish(true)
-      setRaceStarted(false)
-      setStatusMessage('You finished. Waiting for race results...')
-
-      socket.emit('race_complete', {
-        roomId,
-        userId: userIdRef.current,
-        wpm: calculatedWpm,
-        accuracy: calculatedAccuracy,
-      })
-    }
+    setStatusMessage('You are ready. Waiting for the other player...')
   }
 
   useEffect(() => {
-    const updateScale = () => {
-      const viewport = viewportRef.current
-      if (!viewport) {
-        return
-      }
-
-      const nextScale = Math.min(
-        viewport.clientWidth / LOBBY_BASE_WIDTH,
-        viewport.clientHeight / LOBBY_BASE_HEIGHT,
-      )
-
-      setScale(nextScale)
+    if (!authToken) {
+      setIdentityReady(true)
+      return
     }
 
-    updateScale()
-    window.addEventListener('resize', updateScale)
+    let cancelled = false
+
+    const loadIdentity = async () => {
+      try {
+        const profile = await getProfile(authToken)
+        if (cancelled) {
+          return
+        }
+
+        setCurrentUserName(profile.username.trim().toUpperCase() || 'PLAYER')
+        setCurrentUserAvatarKind('initials')
+      } catch {
+        if (cancelled) {
+          return
+        }
+
+        const fallbackName = (localStorage.getItem('email') || 'player').split('@')[0]
+        setCurrentUserName(fallbackName.trim().toUpperCase() || 'PLAYER')
+        setCurrentUserAvatarKind('initials')
+      } finally {
+        if (!cancelled) {
+          setIdentityReady(true)
+        }
+      }
+    }
+
+    void loadIdentity()
 
     return () => {
-      window.removeEventListener('resize', updateScale)
+      cancelled = true
     }
+  }, [authToken])
+
+  useEffect(() => {
+    sessionStorage.setItem(ACTIVE_LOBBY_USER_KEY, userIdRef.current)
   }, [])
+
+  useEffect(() => {
+    if (!roomId) {
+      return
+    }
+
+    sessionStorage.setItem(ACTIVE_LOBBY_CODE_KEY, roomId)
+  }, [roomId])
 
   useEffect(() => {
     if (!connected) {
@@ -175,177 +197,214 @@ function LobbyPage() {
       return
     }
 
-    const handleRoomReady = (payload: { players: RoomPlayerPayload[] }) => {
+    if (!identityReady) {
+      setStatusMessage('Loading profile...')
+      return
+    }
+
+    if (!requestedRoomRef.current) {
+      requestedRoomRef.current = true
+
+      if (initialRoomId) {
+        socket.emit('join_room', {
+          roomId: initialRoomId,
+          userId: userIdRef.current,
+          displayName: currentUserLabel,
+          avatarKind: currentUserAvatarKind,
+        })
+        setStatusMessage('Waiting for opponent...')
+      } else {
+        socket.emit('create_room', {
+          userId: userIdRef.current,
+          displayName: currentUserLabel,
+          avatarKind: currentUserAvatarKind,
+        })
+      }
+    }
+
+    const handleRoomState = (payload: { players: RoomPlayerPayload[] }) => {
       setRoomPlayers(payload.players)
-      setRoomReady(true)
-      setStatusMessage('Room ready. Start the race when both players are prepared.')
-    }
+      setJoinRetrying(false)
 
-    const handleRaceCountdown = (payload: { count: number }) => {
-      setCountdown(payload.count)
-      setStatusMessage(`Race begins in ${payload.count}...`)
-    }
+      const currentPlayer = payload.players.find(player => player.userId === userIdRef.current)
+      const opponentPlayer = payload.players.find(player => player.userId !== userIdRef.current)
 
-    const handleRaceStart = (payload: { passageText: string }) => {
-      raceStartAtRef.current = Date.now()
-      setCountdown(null)
-      setPassageText(payload.passageText)
-      setTypedText('')
-      setMyProgress(0)
-      setOpponentProgress(0)
-      setDidFinish(false)
-      setOpponentFinished(false)
-      setRaceStarted(true)
-      setStatusMessage('Race started. Type as fast and accurately as you can!')
-    }
-
-    const handleOpponentProgress = (payload: { progress: number }) => {
-      setOpponentProgress(payload.progress)
-    }
-
-    const handleOpponentFinished = () => {
-      setOpponentFinished(true)
-      setStatusMessage('Opponent finished first. Keep typing before timeout to submit your result.')
-    }
-
-    const handleRaceResults = (payload: { results: RaceResultPayload[] }) => {
-      const myResult = payload.results.find(result => result.userId === userIdRef.current)
-      const opponentResult = payload.results.find(result => result.userId !== userIdRef.current)
-
-      const playerStats = {
-        wpm: myResult?.wpm ?? 0,
-        accuracy: myResult?.accuracy ?? 0,
-      }
-      const opponentStats = {
-        wpm: opponentResult?.wpm ?? 0,
-        accuracy: opponentResult?.accuracy ?? 0,
+      if (!currentPlayer) {
+        if (initialRoomId) {
+          // We are not a member of the room and it was a join attempt — show full state
+          setStatusMessage('Room is full. Once there is space, you will be placed into lobby automatically.')
+        } else {
+          setStatusMessage('Waiting for a slot in this room...')
+        }
+        return
       }
 
-      let outcome: 'victory' | 'defeat' | 'draw' = 'draw'
-      if (playerStats.wpm > opponentStats.wpm) {
-        outcome = 'victory'
-      } else if (playerStats.wpm < opponentStats.wpm) {
-        outcome = 'defeat'
+      if (probeIntervalRef.current) {
+        window.clearInterval(probeIntervalRef.current)
+        probeIntervalRef.current = null
       }
 
-      const durationInSeconds = raceStartAtRef.current
-        ? Math.max(1, Math.round((Date.now() - raceStartAtRef.current) / 1000))
-        : 0
+      if (currentPlayer.ready && opponentPlayer?.ready) {
+        setStatusMessage('Both players are ready. Starting game...')
+        return
+      }
 
-      navigate('/result', {
+      if (currentPlayer.ready) {
+        setStatusMessage('You are ready. Waiting for the other player...')
+        return
+      }
+
+      if (opponentPlayer) {
+        setStatusMessage('Press Ready when you are set.')
+        return
+      }
+
+      setStatusMessage('Waiting for opponent...')
+    }
+
+    const handleRoomCreated = (payload: RoomCreatedPayload) => {
+      setRoomId(payload.roomId)
+      setJoinRetrying(false)
+      setStatusMessage('Waiting for opponent...')
+    }
+
+    const handleRoomFull = (payload: { roomId: string; players: RoomPlayerPayload[] }) => {
+      setRoomId(payload.roomId)
+      setRoomPlayers(payload.players)
+      setJoinRetrying(false)
+      setStatusMessage('Room is full. Once there is space, you will be placed into lobby automatically.')
+
+      // start probing for availability every 3s
+      if (probeIntervalRef.current) {
+        window.clearInterval(probeIntervalRef.current)
+      }
+      probeIntervalRef.current = window.setInterval(() => {
+        socket.emit('probe_room', { roomId: payload.roomId })
+      }, 3000)
+    }
+
+    const handleRoomProbe = (payload: { roomId: string; players: RoomPlayerPayload[] }) => {
+      setRoomPlayers(payload.players)
+
+      if (payload.players.length < 2) {
+        const targetRoomId = (payload.roomId || roomId || initialRoomId).trim().toUpperCase()
+
+        if (!joinRetrying && targetRoomId && connected && identityReady) {
+          setJoinRetrying(true)
+          setStatusMessage('Space found. Joining lobby...')
+          socket.emit('join_room', {
+            roomId: targetRoomId,
+            userId: userIdRef.current,
+            displayName: currentUserLabel,
+            avatarKind: currentUserAvatarKind,
+          })
+        }
+      } else {
+        setJoinRetrying(false)
+        setStatusMessage('Room is full. Once there is space, you will be placed into lobby automatically.')
+      }
+    }
+
+    const handleGameStart = (payload: GameStartPayload) => {
+      navigate('/game', {
         state: {
-          outcome,
-          playerStats,
-          opponentStats,
-          duration: formatDuration(durationInSeconds),
+          roomId: payload.roomId,
+          userId: userIdRef.current,
+          username: currentUserLabel,
+          passageText: payload.passageText,
+          totalSeconds: payload.totalSeconds,
+          countdownSeconds: payload.countdownSeconds,
+          startAt: payload.startAt,
         },
       })
     }
 
-    const handleOpponentDisconnected = (payload: { message?: string }) => {
-      setRaceStarted(false)
-      setCountdown(null)
-      setRoomReady(false)
-      setStatusMessage(payload.message || 'Opponent disconnected. Return to menu or rejoin a room.')
+    const handleOpponentDisconnected = () => {
+      setStatusMessage('Opponent disconnected. Waiting for another player...')
     }
 
     const handleSocketError = (payload: { message?: string }) => {
-      setStatusMessage(payload.message || 'A socket error occurred.')
+      const message = payload.message || 'A socket error occurred.'
+
+      if (message === 'Room is full') {
+        setJoinRetrying(false)
+        setStatusMessage('Room is full. Once there is space, you will be placed into lobby automatically.')
+        return
+      }
+
+      setStatusMessage(message)
     }
 
-    socket.on('room_ready', handleRoomReady)
-    socket.on('race_countdown', handleRaceCountdown)
-    socket.on('race_start', handleRaceStart)
-    socket.on('opponent_progress', handleOpponentProgress)
-    socket.on('opponent_finished', handleOpponentFinished)
-    socket.on('race_results', handleRaceResults)
+    socket.on('room_state', handleRoomState)
+    socket.on('room_created', handleRoomCreated)
+    socket.on('game_start', handleGameStart)
+    socket.on('room_full', handleRoomFull)
+    socket.on('room_probe', handleRoomProbe)
     socket.on('opponent_disconnected', handleOpponentDisconnected)
     socket.on('error', handleSocketError)
 
-    socket.emit('join_room', {
-      roomId,
-      userId: userIdRef.current,
-      username,
-    })
-    setStatusMessage('Waiting for opponent...')
-
     return () => {
-      socket.off('room_ready', handleRoomReady)
-      socket.off('race_countdown', handleRaceCountdown)
-      socket.off('race_start', handleRaceStart)
-      socket.off('opponent_progress', handleOpponentProgress)
-      socket.off('opponent_finished', handleOpponentFinished)
-      socket.off('race_results', handleRaceResults)
+      socket.off('room_state', handleRoomState)
+      socket.off('room_created', handleRoomCreated)
+      socket.off('game_start', handleGameStart)
+      socket.off('room_full', handleRoomFull)
+      socket.off('room_probe', handleRoomProbe)
       socket.off('opponent_disconnected', handleOpponentDisconnected)
       socket.off('error', handleSocketError)
+      if (probeIntervalRef.current) {
+        window.clearInterval(probeIntervalRef.current)
+        probeIntervalRef.current = null
+      }
     }
-  }, [connected, navigate, roomId, socket, username])
+  }, [connected, currentUserAvatarKind, currentUserLabel, identityReady, initialRoomId, navigate, socket])
 
   return (
     <div className="lobby-root">
-      <div className="lobby-viewport" ref={viewportRef}>
-        <div
-          className="lobby-scale-layer"
-          style={{
-            width: `${LOBBY_BASE_WIDTH}px`,
-            height: `${LOBBY_BASE_HEIGHT}px`,
-            transform: `scale(${scale})`,
-          }}
-        >
+      <div className="lobby-viewport">
+        <div className="lobby-scale-layer">
           <div className="lobby-shell">
-            <LobbyHeader
-              title={`Lobby: ${roomId}`}
-              userWins={`${Math.round(myProgress)}%`}
-              userName={username}
-              onExit={() => setShowExitDialog(true)}
+            <AuthHeader
+              center={
+                <div className="lobby-room-code-wrap">
+                  <span className="lobby-room-code">CODE: {roomId || '------'}</span>
+                  <button
+                    className="lobby-copy-code"
+                    onClick={handleCopyRoomCode}
+                    type="button"
+                    aria-label="Copy lobby code"
+                    title="Copy lobby code"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <path d="M16 1H6a2 2 0 0 0-2 2v12h2V3h10V1Zm3 4H10a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16h-9V7h9v14Z" />
+                    </svg>
+                  </button>
+                  {didCopyRoomCode && <span className="lobby-copy-toast">Copied</span>}
+                </div>
+              }
+              exit={() => setShowExitDialog(true)}
             />
 
             <main className="lobby-board">
-              <section className="lobby-scoreboard">
-                <p className="lobby-round">Connection: {connected ? 'ONLINE' : 'OFFLINE'}</p>
-                <p className="lobby-score">Rope: {Math.round(myProgress - opponentProgress)}</p>
-              </section>
-
               <section className="lobby-players">
                 {players.map(player => (
-                  <LobbyPlayerCard
-                    key={player.name}
-                    player={player}
-                    onViewProfile={() => navigate('/profile&match_history')}
-                  />
+                  <LobbyPlayerCard key={player.side} player={player} />
                 ))}
               </section>
 
               <section className="lobby-actions">
                 <p className="lobby-race-status">{statusMessage}</p>
-                {countdown !== null && <p className="lobby-race-countdown">{countdown}</p>}
-
-                {(passageText || raceStarted) && (
-                  <div className="lobby-race-panel">
-                    <p className="lobby-passage">{passageText}</p>
-                    <textarea
-                      className="lobby-race-input"
-                      value={typedText}
-                      onChange={event => handleTypingChange(event.target.value)}
-                      disabled={!raceStarted || didFinish}
-                      placeholder="Type the passage here when the race starts"
-                    />
-                    <p className="lobby-progress-line">
-                      You: {Math.round(myProgress)}% | Opponent: {Math.round(opponentProgress)}%
-                    </p>
-                    {opponentFinished && !didFinish && (
-                      <p className="lobby-opponent-finished">Opponent finished. Submit your run before timeout.</p>
-                    )}
-                  </div>
+                {me && (
+                  <button
+                    className="lobby-start"
+                    onClick={handleReady}
+                    disabled={!roomId || roomPlayers.length < 2 || meReady}
+                  >
+                    {meReady ? 'Ready' : 'Ready'}
+                  </button>
                 )}
-
-                <button
-                  className="lobby-start"
-                  onClick={handleStartRace}
-                  disabled={!roomReady || raceStarted || countdown !== null}
-                >
-                  Start Game
-                </button>
+                {me && roomReady && (
+                  <p className="lobby-race-status">{opponent?.ready ? 'Waiting for game to load...' : 'Both players joined. Ready up.'}</p>
+                )}
               </section>
             </main>
           </div>
