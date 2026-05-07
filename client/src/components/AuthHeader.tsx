@@ -9,6 +9,15 @@ interface AuthHeaderProps {
 }
 
 function AuthHeader({ showAuth, center, exit, back }: AuthHeaderProps) {
+  const isLoggedIn = !!localStorage.getItem('token')
+
+  const handleLogout = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('userId')
+    localStorage.removeItem('email')
+    globalThis.location.href = '/'
+  }
+
   return (
     <header className="header">
       <Link to="/" className="header-logo">TYPE-OF-WAR</Link>
@@ -19,10 +28,14 @@ function AuthHeader({ showAuth, center, exit, back }: AuthHeaderProps) {
 
       <div className="header-right">
         {showAuth && (
-          <>
-            <Link to="/register">Sign Up</Link>
-            <Link to="/login">Login</Link>
-          </>
+          isLoggedIn ? (
+            <button className="header-logout-btn" onClick={handleLogout}>LOG OUT</button>
+          ) : (
+            <>
+              <Link to="/register">Sign Up</Link>
+              <Link to="/login">Login</Link>
+            </>
+          )
         )}
         {exit && (
           <button className="header-exit-btn" onClick={exit}>EXIT</button>
