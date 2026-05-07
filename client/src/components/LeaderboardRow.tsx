@@ -1,6 +1,6 @@
 export interface Player {
+  userId: string
   name: string
-  code: string
   avgWpm: number
   accuracy: number
   wins: number
@@ -31,7 +31,6 @@ function LeaderboardRow({ player, rank, activeFilter }: { player: Player; rank: 
         </div>
         <div className="lb-player-info">
           <span className="lb-player-name">{player.name}</span>
-          <span className="lb-player-code">{player.code}</span>
         </div>
       </div>
       <span className={`lb-col lb-col--wpm ${activeFilter === 'AVG WPM' ? 'lb-value' : ''}`}>

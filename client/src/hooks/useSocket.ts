@@ -22,7 +22,6 @@ function useSocket() {
     return () => {
       socket.off('connect', handleConnect)
       socket.off('disconnect', handleDisconnect)
-      socket.disconnect()
     }
   }, [])
 

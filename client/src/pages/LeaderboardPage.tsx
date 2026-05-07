@@ -2,29 +2,48 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AuthHeader from '../components/AuthHeader'
 import LeaderboardRow, { type Player, type FilterType } from '../components/LeaderboardRow'
+import { getLeaderboard } from '../services/leaderboardService'
 import './LeaderboardPage.css'
-
-const PLAYERS: Player[] = [
-  { name: 'A', code: '#0001', avgWpm: 155, accuracy: 98, wins: 512, totalMatch: 800 },
-  { name: 'B', code: '#0002', avgWpm: 150, accuracy: 97, wins: 412, totalMatch: 800 },
-  { name: 'C', code: '#0003', avgWpm: 145, accuracy: 95, wins: 311, totalMatch: 800 },
-  { name: 'D', code: '#0004', avgWpm: 140, accuracy: 96, wins: 516, totalMatch: 800 },
-  { name: 'E', code: '#0005', avgWpm: 135, accuracy: 93, wins: 205, totalMatch: 800 },
-  { name: 'F', code: '#0006', avgWpm: 130, accuracy: 94, wins: 518, totalMatch: 800 },
-  { name: 'H', code: '#0008', avgWpm: 125, accuracy: 92, wins: 511, totalMatch: 800 },
-  { name: 'G', code: '#0007', avgWpm: 120, accuracy: 91, wins: 411, totalMatch: 800 },
-  { name: 'Z', code: '#0011', avgWpm: 141, accuracy: 96, wins: 498, totalMatch: 800, isMe: true },
-]
 
 function LeaderboardPage() {
   const navigate = useNavigate()
   const [filter, setFilter] = useState<FilterType>('AVG WPM')
   const [players, setPlayers] = useState<Player[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // TODO: replace with real API call when backend is ready
-    setPlayers(PLAYERS)
-  }, [])
+    const token = localStorage.getItem('token')
+    const userId = localStorage.getItem('userId')
+
+    if (!token) {
+      navigate('/login')
+      return
+    }
+
+    const fetchData = async () => {
+      try {
+        const entries = await getLeaderboard(token)
+        setPlayers(
+          entries.map(e => ({
+            userId: e.userId,
+            name: e.username,
+            avgWpm: e.avgWpm,
+            accuracy: e.avgAccuracy,
+            wins: e.totalWins,
+            totalMatch: e.totalMatches,
+            isMe: e.userId === userId,
+          }))
+        )
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load leaderboard')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    void fetchData()
+  }, [navigate])
 
   const sorted = [...players].sort((a, b) => {
     if (filter === 'AVG WPM') return (b.avgWpm - a.avgWpm) || (b.accuracy - a.accuracy) || (b.wins - a.wins)
@@ -36,6 +55,24 @@ function LeaderboardPage() {
 
   const meIndex = sorted.findIndex(p => p.isMe)
   const meRow = meIndex !== -1 ? sorted[meIndex] : null
+
+  if (loading) {
+    return (
+      <div className="lb-root">
+        <AuthHeader center="GLOBAL LEADERBOARD" back={() => navigate('/')} />
+        <div className="profile-loading">LOADING...</div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="lb-root">
+        <AuthHeader center="GLOBAL LEADERBOARD" back={() => navigate('/')} />
+        <div className="profile-loading">{error}</div>
+      </div>
+    )
+  }
 
   return (
     <div className="lb-root">
@@ -75,7 +112,7 @@ function LeaderboardPage() {
           {/* Scrollable rows — all players in sorted order, player row highlighted in list */}
           <div className="lb-table-scroll">
             {sorted.map((player, i) => (
-              <LeaderboardRow key={player.code} player={player} rank={i + 1} activeFilter={filter} />
+              <LeaderboardRow key={player.userId} player={player} rank={i + 1} activeFilter={filter} />
             ))}
           </div>
 

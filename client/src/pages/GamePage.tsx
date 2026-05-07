@@ -1,7 +1,8 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import TypingDisplay from "../components/TypingDisplay";
 import { useGameLogic, formatTime } from "../hooks/useGameLogic";
+import socket from "../socket";
 import "./GamePage.css";
 
 const PASSAGE =
@@ -17,6 +18,14 @@ interface GameLocationState {
   totalSeconds?: number;
   countdownSeconds?: number;
   startAt?: number;
+}
+
+interface FinisherResult {
+  userId: string;
+  username: string;
+  wpm: number;
+  accuracy: number;
+  finished: boolean;
 }
 
 // Simulated opponent - swap out for real data when backend is ready
@@ -38,21 +47,74 @@ const GamePage: React.FC = () => {
   const countdownSeed = locationState.countdownSeconds ?? 3;
   const [countdown, setCountdown] = React.useState<number | null>(null);
   const [didStartRace, setDidStartRace] = React.useState(false);
+  const [waitingForResults, setWaitingForResults] = useState(false);
+  const elapsedRef = useRef(0);
+
+  useEffect(() => {
+    const roomId = locationState.roomId;
+    const userId = locationState.userId;
+    if (!roomId || !userId) return;
+
+    const handleRaceResults = (payload: { roomId: string; results: FinisherResult[] }) => {
+      const myResult = payload.results.find(r => r.userId === userId);
+      const opponentResult = payload.results.find(r => r.userId !== userId);
+
+      if (!myResult) return;
+
+      let outcome: "victory" | "defeat" | "draw" = "draw";
+      if (opponentResult) {
+        if (myResult.wpm > opponentResult.wpm) outcome = "victory";
+        else if (myResult.wpm < opponentResult.wpm) outcome = "defeat";
+      }
+
+      navigate("/result", {
+        state: {
+          roomId: payload.roomId,
+          userId,
+          username: locationState.username,
+          outcome,
+          playerStats: { wpm: myResult.wpm, accuracy: myResult.accuracy, inaccuracies: 0 },
+          opponentStats: opponentResult
+            ? { wpm: opponentResult.wpm, accuracy: opponentResult.accuracy, inaccuracies: 0 }
+            : MOCK_OPPONENT_STATS,
+          duration: formatTime(elapsedRef.current),
+        },
+      });
+    };
+
+    socket.on("race_results", handleRaceResults);
+    return () => { socket.off("race_results", handleRaceResults); };
+  }, [locationState, navigate]);
 
   const { userInput, status, timeLeft, stats, start, handleInput } = useGameLogic({
     passage: racePassage,
     totalSeconds: raceDuration,
-    onGameEnd: (finalStats: typeof MOCK_OPPONENT_STATS, elapsed: number) => {
-      const opponent = MOCK_OPPONENT_STATS;
+    onGameEnd: (finalStats, elapsed) => {
+      elapsedRef.current = elapsed;
+      const roomId = locationState.roomId;
+      const userId = locationState.userId;
 
+      if (roomId && userId && socket.connected) {
+        socket.emit("race_complete", {
+          roomId,
+          userId,
+          wpm: finalStats.wpm,
+          accuracy: finalStats.accuracy,
+        });
+        setWaitingForResults(true);
+        return;
+      }
+
+      // Solo/practice mode or disconnected: navigate immediately
+      const opponent = MOCK_OPPONENT_STATS;
       let outcome: "victory" | "defeat" | "draw" = "draw";
       if (finalStats.wpm > opponent.wpm) outcome = "victory";
       else if (finalStats.wpm < opponent.wpm) outcome = "defeat";
 
       navigate("/result", {
         state: {
-          roomId: locationState.roomId,
-          userId: locationState.userId,
+          roomId,
+          userId,
           username: locationState.username,
           outcome,
           playerStats: finalStats,
@@ -147,6 +209,8 @@ const GamePage: React.FC = () => {
         <div className="game-page__timer">
           {countdown !== null ? (
             <span className="game-page__timer-value">{countdown}</span>
+          ) : waitingForResults ? (
+            <span className="game-page__timer-idle">Waiting for results...</span>
           ) : status === "idle" ? (
             <span className="game-page__timer-idle">Preparing race...</span>
           ) : (
