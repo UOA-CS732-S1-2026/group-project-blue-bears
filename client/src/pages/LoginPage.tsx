@@ -49,6 +49,7 @@ function LoginPage() {
             placeholder="Enter your username or email"
             value={emailOrUsername}
             onChange={e => setEmailOrUsername(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleLogin()}
             autoFocus
           />
 
@@ -58,6 +59,7 @@ function LoginPage() {
             placeholder="Enter your password"
             value={password}
             onChange={e => setPassword(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleLogin()}
           />
 
           <div className="auth-row">

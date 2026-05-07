@@ -29,7 +29,7 @@ function AuthHeader({ showAuth, center, exit, back }: AuthHeaderProps) {
       <div className="header-right">
         {showAuth && (
           isLoggedIn ? (
-            <button className="header-logout-btn" onClick={handleLogout}>LOG OUT</button>
+            <button className="header-logout-btn" onClick={handleLogout}>Log Out</button>
           ) : (
             <>
               <Link to="/register">Sign Up</Link>
