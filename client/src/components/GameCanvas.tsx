@@ -25,7 +25,7 @@ interface GameCanvasProps {
   raceMeta: { passage: String }
 }
 
-const DRAW_ROPE_NODES = false;
+const DRAW_ROPE_NODES = true;
 
 const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentStats, raceMeta }) => {
   // Reference to HTML canvas element for rendering scene.
@@ -161,7 +161,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentSt
       );
       blueSprite.tint = 'blue'
 
-      const rope = CreateRope(...NDC(-1.1, -0.15), ...NDC(1.1, -0.15), 20);
+      const rope = CreateRope(...NDC(-1.1, -0.15), ...NDC(1.1, -0.15), 25);
 
       const redRopeParticleIndex = findClosestRopeParticleIndex(rope, redSprite.x, redSprite.y);
       const blueRopeParticleIndex = findClosestRopeParticleIndex(rope, blueSprite.x, blueSprite.y);
@@ -200,14 +200,36 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentSt
         // Estimate time to completion for player & opponent (with safe numeric coercion)
         const passageLength = Number(raceMetaRef.current?.passage.length ?? 0);
         const lettersLeftPlayer = passageLength - (Number(playerProg) / 100) * passageLength;
-        const playerTimeToCompletion = Math.min(lettersLeftPlayer / (playerWpm / 60), 2000);
+
+        // clamped to 500 to prevent exaggerated jumps in the visuals.
+        const playerTimeToCompletion = Math.min(lettersLeftPlayer / (playerWpm / 60), 500);
 
         const lettersLeftOpponent = passageLength - (Number(opponentProg) / 100) * passageLength;
-        const opponentTimeToCompletion = Math.min(lettersLeftOpponent / (opponentWpm / 60), 2000);
+        const opponentTimeToCompletion = Math.min(lettersLeftOpponent / (opponentWpm / 60), 500);
 
-        // Include status in the log so the prop is referenced and to aid debugging
-        // eslint-disable-next-line no-console
-        console.log(`status=${status} ttc(opponent)=${opponentTimeToCompletion.toFixed(2)} ttc(player)=${playerTimeToCompletion.toFixed(2)}`);
+        const playerPullAmount = (playerTimeToCompletion - opponentTimeToCompletion) / (playerTimeToCompletion + opponentTimeToCompletion) * 0.4;
+
+        redSprite.position.set(...NDC(-0.6 + playerPullAmount, -0.18))
+        blueSprite.position.set(...NDC(0.6 + playerPullAmount, -0.18))
+
+        // Move the pinned rope particles to follow their sprites so the rope deforms correctly
+        const redParticle = rope.particles[redRopeParticleIndex];
+        redParticle.x = redSprite.x;
+        redParticle.y = redSprite.y;
+        redParticle.px = redSprite.x;
+        redParticle.py = redSprite.y;
+        rope.points[redRopeParticleIndex].x = redParticle.x;
+        rope.points[redRopeParticleIndex].y = redParticle.y;
+
+        const blueParticle = rope.particles[blueRopeParticleIndex];
+        blueParticle.x = blueSprite.x;
+        blueParticle.y = blueSprite.y;
+        blueParticle.px = blueSprite.x;
+        blueParticle.py = blueSprite.y;
+        rope.points[blueRopeParticleIndex].x = blueParticle.x;
+        rope.points[blueRopeParticleIndex].y = blueParticle.y;
+
+        //console.log(`status=${status} ttc(opponent)=${opponentTimeToCompletion.toFixed(2)} ttc(player)=${playerTimeToCompletion.toFixed(2)}`);
 
         if (DRAW_ROPE_NODES)
           drawRopeViz(RopeNodeVisualiser, rope);
