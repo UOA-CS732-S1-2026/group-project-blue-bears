@@ -24,6 +24,7 @@ function LoginPage() {
       localStorage.setItem('token', data.token)
       localStorage.setItem('userId', data.userId)
       localStorage.setItem('email', data.email)
+      localStorage.setItem('username', data.username)
       navigate('/')
     } catch (err: any) {
       setError(err.message)
@@ -40,8 +41,11 @@ function LoginPage() {
           <h1 className="auth-title">Welcome Back</h1>
           <p className="auth-subtitle">Log in to your account to continue</p>
 
-          <p style={{ color: 'var(--accent-red)', fontSize: '13px', minHeight: '18px' }}>{error}</p>
-          <p style={{ color: 'var(--accent-green)', fontSize: '13px', minHeight: '18px' }}>{successMessage}</p>
+          {(error || successMessage) && (
+            <p style={{ color: error ? 'var(--accent-red)' : 'var(--accent-green)', fontSize: '13px', margin: 0 }}>
+              {error || successMessage}
+            </p>
+          )}
 
           <AuthInput
             label="Username or email"
@@ -55,6 +59,7 @@ function LoginPage() {
           <AuthInput
             label="Password"
             type="password"
+            showToggle
             placeholder="Enter your password"
             value={password}
             onChange={e => setPassword(e.target.value)}
