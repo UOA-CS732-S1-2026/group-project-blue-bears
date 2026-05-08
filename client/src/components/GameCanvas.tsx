@@ -26,8 +26,9 @@ interface GameCanvasProps {
 }
 
 const DRAW_ROPE_NODES = false;
-const SPRITE_SMOOTHING = 12;
-const MAX_SPRITE_PULL = 0.4;
+const SPRITE_SMOOTHING = 40;
+const MAX_SPRITE_PULL = 0.5;
+const SPRITE_PIVOT_POINT = 0.5;
 
 const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentStats, raceMeta }) => {
   // Reference to HTML canvas element for rendering scene.
@@ -152,14 +153,14 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentSt
       const redSprite = createAnimatedSprite(
         spritesheet.animations["player-pull"], // ANIMATION
         150, 150, // WIDTH, HEIGHT
-        ...NDC(-0.6, -0.18), // POSITION
+        ...NDC(-SPRITE_PIVOT_POINT, -0.18), // POSITION
       );
       redSprite.tint = 'red';
 
       const blueSprite = createAnimatedSprite(
         spritesheet.animations["player-pull"],
         150, 150,
-        ...NDC(0.6, -0.18),
+        ...NDC(SPRITE_PIVOT_POINT, -0.18),
         true, // Flip horizontally
       );
       blueSprite.tint = 'blue'
@@ -205,10 +206,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentSt
         const lettersLeftPlayer = passageLength - (Number(playerProg) / 100) * passageLength;
 
         // clamped to 300 to minimize exaggerated jumps in the visuals.
-        const playerTimeToCompletion = Math.min(lettersLeftPlayer / (playerWpm / 60), 300);
+        // Player WPM divided by 12 as WPM/60 * 5 ~= letters/second given average word has 5 letters
+        const playerTimeToCompletion = Math.min(lettersLeftPlayer / (playerWpm / 12), 300);
 
         const lettersLeftOpponent = passageLength - (Number(opponentProg) / 100) * passageLength;
-        const opponentTimeToCompletion = Math.min(lettersLeftOpponent / (opponentWpm / 60), 300);
+        const opponentTimeToCompletion = Math.min(lettersLeftOpponent / (opponentWpm / 12), 300);
 
         // Scale quadratically to exaggerate the winning effect
         // Horizontal offset for player sprites.
@@ -220,8 +222,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentSt
         smoothPullAmountRef.current += (targetPullAmount - smoothPullAmountRef.current) * smoothing;
 
         // Move sprites into position
-        redSprite.position.set(...NDC(-0.6 + smoothPullAmountRef.current, -0.18))
-        blueSprite.position.set(...NDC(0.6 + smoothPullAmountRef.current, -0.18))
+        redSprite.position.set(...NDC(-SPRITE_PIVOT_POINT + smoothPullAmountRef.current, -0.18))
+        blueSprite.position.set(...NDC(SPRITE_PIVOT_POINT + smoothPullAmountRef.current, -0.18))
 
         // Set animation speed depending on WPM
         redSprite.animationSpeed = 0.12 + 0.36 * (playerWpm / 200)
