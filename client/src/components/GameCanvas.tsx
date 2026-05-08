@@ -25,7 +25,7 @@ interface GameCanvasProps {
   raceMeta: { passage: String }
 }
 
-const DRAW_ROPE_NODES = true;
+const DRAW_ROPE_NODES = false;
 
 const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentStats, raceMeta }) => {
   // Reference to HTML canvas element for rendering scene.
@@ -201,31 +201,40 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentSt
         const passageLength = Number(raceMetaRef.current?.passage.length ?? 0);
         const lettersLeftPlayer = passageLength - (Number(playerProg) / 100) * passageLength;
 
-        // clamped to 500 to prevent exaggerated jumps in the visuals.
-        const playerTimeToCompletion = Math.min(lettersLeftPlayer / (playerWpm / 60), 500);
+        // clamped to 300 to minimize exaggerated jumps in the visuals.
+        const playerTimeToCompletion = Math.min(lettersLeftPlayer / (playerWpm / 60), 300);
 
         const lettersLeftOpponent = passageLength - (Number(opponentProg) / 100) * passageLength;
-        const opponentTimeToCompletion = Math.min(lettersLeftOpponent / (opponentWpm / 60), 500);
+        const opponentTimeToCompletion = Math.min(lettersLeftOpponent / (opponentWpm / 60), 300);
 
-        const playerPullAmount = (playerTimeToCompletion - opponentTimeToCompletion) / (playerTimeToCompletion + opponentTimeToCompletion) * 0.4;
+        // Scale quadratically to exaggerate the winning effect
+        const normalized = (playerTimeToCompletion - opponentTimeToCompletion) / (playerTimeToCompletion + opponentTimeToCompletion);
+        // Horizontal offset for player sprites.
+        const playerPullAmount = Math.sign(normalized) * Math.pow(Math.abs(normalized), 2) * 0.4;
 
+        // Move sprites into position
         redSprite.position.set(...NDC(-0.6 + playerPullAmount, -0.18))
         blueSprite.position.set(...NDC(0.6 + playerPullAmount, -0.18))
 
+        // Set animation speed depending on WPM
+        redSprite.animationSpeed = 0.12 + 0.36 * (playerWpm / 200)
+        blueSprite.animationSpeed = 0.12 + 0.36 * (opponentWpm / 200)
+
         // Move the pinned rope particles to follow their sprites so the rope deforms correctly
+        const heightOffset = redSprite.getSize().height * -0.05
         const redParticle = rope.particles[redRopeParticleIndex];
         redParticle.x = redSprite.x;
-        redParticle.y = redSprite.y;
+        redParticle.y = redSprite.y + heightOffset;
         redParticle.px = redSprite.x;
-        redParticle.py = redSprite.y;
+        redParticle.py = redSprite.y + heightOffset;
         rope.points[redRopeParticleIndex].x = redParticle.x;
         rope.points[redRopeParticleIndex].y = redParticle.y;
 
         const blueParticle = rope.particles[blueRopeParticleIndex];
-        blueParticle.x = blueSprite.x;
+        blueParticle.x = blueSprite.x + heightOffset*1.5;
         blueParticle.y = blueSprite.y;
         blueParticle.px = blueSprite.x;
-        blueParticle.py = blueSprite.y;
+        blueParticle.py = blueSprite.y + heightOffset;
         rope.points[blueRopeParticleIndex].x = blueParticle.x;
         rope.points[blueRopeParticleIndex].y = blueParticle.y;
 

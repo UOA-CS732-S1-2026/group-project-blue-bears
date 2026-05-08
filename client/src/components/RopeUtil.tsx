@@ -1,5 +1,5 @@
 const GRAVITY = 800; // pixels/s²
-const ITERATIONS = 40; // More = stiffer rope, but more computationally expensive
+const ITERATIONS = 30; // More = stiffer rope, but more computationally expensive
 
 import { Point } from 'pixi.js';
 
