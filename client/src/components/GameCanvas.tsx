@@ -51,22 +51,7 @@ function GameCanvas() {
     return app;
   };
 
-  const getCanvasPointerPosition = (
-    pointerEvent: PointerEvent,
-    canvasElement: HTMLCanvasElement,
-  ) => {
-    const rect = canvasElement.getBoundingClientRect();
-    const scaleX = canvasElement.width / rect.width;
-    const scaleY = canvasElement.height / rect.height;
-
-    return {
-      x: (pointerEvent.clientX - rect.left) * scaleX,
-      y: (pointerEvent.clientY - rect.top) * scaleY,
-    };
-  };
-
   useEffect(() => {
-    let detachDragHandlers = () => {};
 
     (async () => {
       if (!canvas.current) {
