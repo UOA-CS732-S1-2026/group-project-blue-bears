@@ -4,8 +4,23 @@
  */
 import mongoose from 'mongoose';
 import { Server, Socket } from 'socket.io';
+import path from 'path';
+import fs from 'fs';
 
 const { createMatchResult } = require('../../data-access/matchDataAccess');
+
+// Load local word list once at startup
+const WORDS_PATH = path.join(__dirname, '../data/commonWords.json');
+const WORD_LIST: string[] = JSON.parse(fs.readFileSync(WORDS_PATH, 'utf-8'));
+const PASSAGE_WORD_COUNT = 50;
+
+const generatePassage = (): string => {
+  const selected: string[] = [];
+  for (let i = 0; i < PASSAGE_WORD_COUNT; i++) {
+    selected.push(WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)]);
+  }
+  return selected.join(' ');
+};
 
 interface JoinRoomPayload {
   roomId: string;
@@ -36,6 +51,8 @@ interface ProgressUpdatePayload {
   roomId: string;
   userId: string;
   progress: number;
+  wpm?: number;
+  accuracy?: number;
 }
 
 interface RaceCompletePayload {
@@ -77,8 +94,6 @@ const socketRoomLookup = new Map<string, string>();
 const ROOM_CODE_LENGTH = 6;
 const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
-const DEFAULT_PASSAGE =
-  'The quick brown fox jumps over the lazy dog while bright comets trace long arcs across the midnight sky.';
 const RACE_DURATION_SECONDS = 60;
 const PRE_RACE_COUNTDOWN_SECONDS = 3;
 
@@ -138,7 +153,7 @@ const getOrCreateRoom = (roomId: string): RoomState => {
     players: [],
     countdownStarted: false,
     raceStarted: false,
-    passageText: DEFAULT_PASSAGE,
+    passageText: '', // Generated fresh by generatePassage() inside emitGameStart
     finishers: new Map<string, FinisherResult>(),
   };
 
@@ -147,6 +162,8 @@ const getOrCreateRoom = (roomId: string): RoomState => {
 };
 
 const emitGameStart = (io: Server, room: RoomState): void => {
+  // Generate a fresh passage for each race
+  room.passageText = generatePassage();
   const startAt = Date.now() + PRE_RACE_COUNTDOWN_SECONDS * 1000;
 
   io.to(room.roomId).emit('game_start', {
@@ -156,7 +173,17 @@ const emitGameStart = (io: Server, room: RoomState): void => {
     countdownSeconds: PRE_RACE_COUNTDOWN_SECONDS,
     startAt,
   });
+
+  // Mark the race as started after the countdown elapses so the server
+  // begins accepting progress_update events at the same moment the clients do.
+  setTimeout(() => {
+    const activeRoom = rooms.get(room.roomId);
+    if (activeRoom) {
+      activeRoom.raceStarted = true;
+    }
+  }, PRE_RACE_COUNTDOWN_SECONDS * 1000);
 };
+
 
 const emitRoomState = (io: Server, room: RoomState): void => {
   io.to(room.roomId).emit('room_state', {
@@ -373,9 +400,7 @@ export const registerSocketHandlers = (io: Server): void => {
       }
 
       room.countdownStarted = true;
-      room.passageText = payload.passageText ?? DEFAULT_PASSAGE;
-
-      // TODO: Replace this with Quotable API passage fetching once API integration is available.
+      // Passage is generated server-side inside emitGameStart via generatePassage()
       startCountdown(io, room);
     });
 
@@ -392,6 +417,8 @@ export const registerSocketHandlers = (io: Server): void => {
         roomId: payload.roomId,
         userId: payload.userId,
         progress: clampedProgress,
+        wpm: payload.wpm ?? 0,
+        accuracy: payload.accuracy ?? 100,
       });
     });
 
@@ -423,6 +450,8 @@ export const registerSocketHandlers = (io: Server): void => {
         socket.to(payload.roomId).emit('opponent_finished', {
           roomId: payload.roomId,
           userId: payload.userId,
+          wpm: payload.wpm,
+          accuracy: payload.accuracy,
         });
 
         if (!room.raceTimeout) {
