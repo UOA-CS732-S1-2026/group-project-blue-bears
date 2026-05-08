@@ -12,7 +12,6 @@ function LoginPage() {
 
   const [emailOrUsername, setEmailOrUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -49,6 +48,7 @@ function LoginPage() {
             placeholder="Enter your username or email"
             value={emailOrUsername}
             onChange={e => setEmailOrUsername(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleLogin()}
             autoFocus
           />
 
@@ -58,18 +58,8 @@ function LoginPage() {
             placeholder="Enter your password"
             value={password}
             onChange={e => setPassword(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleLogin()}
           />
-
-          <div className="auth-row">
-            <label className="auth-remember">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={e => setRememberMe(e.target.checked)}
-              />
-              <span>Remember Me</span>
-            </label>
-          </div>
 
           <button className="auth-btn" onClick={handleLogin} disabled={loading}>
             {loading ? 'Logging in...' : 'Login'}
