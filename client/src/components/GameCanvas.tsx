@@ -26,6 +26,7 @@ interface GameCanvasProps {
 }
 
 const DRAW_ROPE_NODES = false;
+const SPRITE_SMOOTHING = 12;
 
 const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentStats, raceMeta }) => {
   // Reference to HTML canvas element for rendering scene.
@@ -36,6 +37,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentSt
   const playerStatsRef = useRef(playerStats);
   const opponentStatsRef = useRef(opponentStats);
   const raceMetaRef = useRef(raceMeta);
+  const smoothPullAmountRef = useRef(0);
 
   // Sync refs when props change
   // Note: useEffect is safe here because these are simple assignments
@@ -208,13 +210,17 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentSt
         const opponentTimeToCompletion = Math.min(lettersLeftOpponent / (opponentWpm / 60), 300);
 
         // Scale quadratically to exaggerate the winning effect
-        const normalized = (playerTimeToCompletion - opponentTimeToCompletion) / (playerTimeToCompletion + opponentTimeToCompletion);
         // Horizontal offset for player sprites.
-        const playerPullAmount = Math.sign(normalized) * Math.pow(Math.abs(normalized), 2) * 0.4;
+        const normalized = (playerTimeToCompletion - opponentTimeToCompletion) / (playerTimeToCompletion + opponentTimeToCompletion);
+        const targetPullAmount = Math.sign(normalized) * Math.pow(Math.abs(normalized), 2) * 0.4;
+
+        // Ease the visual position toward the latest target so changes feel like a tween.
+        const smoothing = 1 - Math.exp(-SPRITE_SMOOTHING * dt);
+        smoothPullAmountRef.current += (targetPullAmount - smoothPullAmountRef.current) * smoothing;
 
         // Move sprites into position
-        redSprite.position.set(...NDC(-0.6 + playerPullAmount, -0.18))
-        blueSprite.position.set(...NDC(0.6 + playerPullAmount, -0.18))
+        redSprite.position.set(...NDC(-0.6 + smoothPullAmountRef.current, -0.18))
+        blueSprite.position.set(...NDC(0.6 + smoothPullAmountRef.current, -0.18))
 
         // Set animation speed depending on WPM
         redSprite.animationSpeed = 0.12 + 0.36 * (playerWpm / 200)
