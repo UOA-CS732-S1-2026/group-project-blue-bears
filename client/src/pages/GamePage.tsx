@@ -1,10 +1,9 @@
 import React, { useRef, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import TypingDisplay from "../components/TypingDisplay";
-import { useGameLogic, formatTime } from "../hooks/useGameLogic";
+import { useGameLogic, formatTime, type GameStatus, type GameStats } from "../hooks/useGameLogic";
 import useSocket from "../hooks/useSocket";
 import "./GamePage.css";
-import GameGraphicsTestPage from "./GameGraphicsTestPage";
 import GameCanvas from "../components/GameCanvas";
 
 const TOTAL_SECONDS = 60;
@@ -19,7 +18,7 @@ interface GameLocationState {
   startAt?: number;
 }
 
-interface OpponentStats {
+export interface OpponentStats {
   wpm: number;
   accuracy: number;
 }
@@ -227,7 +226,11 @@ const GamePage: React.FC = () => {
   return (
     <div className="game-page" onClick={handlePageClick}>
 
-      <GameCanvas />
+      <GameCanvas 
+          status={status}
+          playerStats={stats}
+          opponentStats={opponentStats}
+      />
 
       <input
         ref={inputRef}

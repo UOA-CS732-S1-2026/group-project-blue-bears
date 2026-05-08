@@ -10,16 +10,29 @@ import {
 import { useEffect, useRef } from "react";
 import spritesheetImage from "../sprites/animation.png";
 import spritesheet_animation_meta from "../sprites/animation.json";
-import { CreateRope, UpdateRope } from "./RopeUtil";
+import { CreateRope, UpdateRope, type Rope } from "./RopeUtil";
 import backgroundImage from "../assets/arena3.png";
 import ropeTexture from "../assets/rope2.png";
 import { createAnimatedSprite } from "./GraphicsUtil";
-
 import "./GameCanvas.css";
+import type { GameStats, GameStatus } from "../hooks/useGameLogic";
+import type { OpponentStats } from "../pages/GamePage";
 
-function GameCanvas() {
+interface GameCanvasProps {
+  status: GameStatus;
+  playerStats: GameStats;
+  opponentStats: OpponentStats;
+}
+
+const DRAW_ROPE_NODES = true;
+
+const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentStats }) => {
   // Reference to HTML canvas element for rendering scene.
   const canvas = useRef<HTMLCanvasElement | null>(null);
+
+  console.log(status);
+  console.log(playerStats);
+  console.log(opponentStats);
 
   // Pixi.js application instance.
   let app: Application | null;
@@ -34,6 +47,26 @@ function GameCanvas() {
 
     return [posX, posY] as const;
   };
+
+  const drawRopeViz = (RopeGraphic: Graphics, Rope: Rope) => {
+      RopeGraphic.clear();
+      for (let i = 1; i < Rope.points.length; i++) {
+        const from = Rope.points[i - 1];
+        const to = Rope.points[i];
+
+        const lineStyle = 0x00ff00
+        const circleStyle = Rope.particles[i].pinned ? 0xff0000 : 0x00ff00;
+        RopeGraphic
+          .setStrokeStyle(lineStyle)
+          .moveTo(from.x, from.y)
+          .lineTo(to.x, to.y)
+          .stroke();
+        RopeGraphic
+          .setStrokeStyle(circleStyle)
+          .circle(to.x, to.y, 5)
+          .stroke();
+      }
+  }
 
   const initApp = async (
     canvas: HTMLCanvasElement,
@@ -118,23 +151,8 @@ function GameCanvas() {
         const dt = delta.deltaMS / 1000;
         UpdateRope(rope, dt);
 
-        RopeNodeVisualiser.clear();
-        for (let i = 1; i < rope.points.length; i++) {
-          const from = rope.points[i - 1];
-          const to = rope.points[i];
-
-          const lineStyle = 0x00ff00
-          const circleStyle = rope.particles[i].pinned ? 0xff0000 : 0x00ff00;
-          RopeNodeVisualiser
-            .setStrokeStyle(lineStyle)
-            .moveTo(from.x, from.y)
-            .lineTo(to.x, to.y)
-            .stroke();
-          RopeNodeVisualiser
-            .setStrokeStyle(circleStyle)
-            .circle(to.x, to.y, 5)
-            .stroke();
-        }
+        if (DRAW_ROPE_NODES)
+          drawRopeViz(RopeNodeVisualiser, rope);
       });
     })();
 
