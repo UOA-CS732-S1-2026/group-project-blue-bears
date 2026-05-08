@@ -24,6 +24,10 @@ export interface OpponentStats {
   progress?: number;
 }
 
+export interface PlayerStats extends GameStats {
+  progress: number;
+}
+
 interface OpponentProgressPayload {
   roomId: string;
   userId: string;
@@ -58,6 +62,7 @@ const GamePage: React.FC = () => {
   const countdownSeed = locationState.countdownSeconds ?? 3;
   const [countdown, setCountdown] = React.useState<number | null>(null);
   const [didStartRace, setDidStartRace] = React.useState(false);
+  const [playerProgress, setPlayerProgress] = React.useState<number>(0);
 
   // Real-time opponent stats updated via socket
   const [opponentStats, setOpponentStats] = useState<OpponentStats>({ wpm: 0, accuracy: 100 });
@@ -113,6 +118,7 @@ const GamePage: React.FC = () => {
     const progress = racePassage.length > 0
       ? Math.round((userInput.length / racePassage.length) * 100)
       : 0;
+    setPlayerProgress(progress);
 
     socket.emit("progress_update", {
       roomId: locationState.roomId,
@@ -229,8 +235,9 @@ const GamePage: React.FC = () => {
 
       <GameCanvas 
           status={status}
-          playerStats={stats}
+          playerStats={{...stats, progress: playerProgress}}
           opponentStats={opponentStats}
+          raceMeta={{passage: racePassage}}
       />
 
       <input

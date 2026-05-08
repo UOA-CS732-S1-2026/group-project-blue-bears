@@ -15,23 +15,48 @@ import backgroundImage from "../assets/arena3.png";
 import ropeTexture from "../assets/rope2.png";
 import { createAnimatedSprite } from "./GraphicsUtil";
 import "./GameCanvas.css";
-import type { GameStats, GameStatus } from "../hooks/useGameLogic";
-import type { OpponentStats } from "../pages/GamePage";
+import type { GameStatus } from "../hooks/useGameLogic";
+import type { OpponentStats, PlayerStats } from "../pages/GamePage";
 
 interface GameCanvasProps {
   status: GameStatus;
-  playerStats: GameStats;
+  playerStats: PlayerStats;
   opponentStats: OpponentStats;
+  raceMeta: { passage: String }
 }
 
-const DRAW_ROPE_NODES = true;
+const DRAW_ROPE_NODES = false;
 
-const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentStats }) => {
+const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentStats, raceMeta }) => {
   // Reference to HTML canvas element for rendering scene.
   const canvas = useRef<HTMLCanvasElement | null>(null);
 
-  // Pixi.js application instance.
-  let app: Application | null;
+  // Keep refs to the latest props so the Pixi ticker closure sees updates
+  const statusRef = useRef(status);
+  const playerStatsRef = useRef(playerStats);
+  const opponentStatsRef = useRef(opponentStats);
+  const raceMetaRef = useRef(raceMeta);
+
+  // Sync refs when props change
+  // Note: useEffect is safe here because these are simple assignments
+  // and avoid recreating the Pixi app/ticker on every prop change.
+  useEffect(() => {
+    playerStatsRef.current = playerStats;
+  }, [playerStats]);
+
+  useEffect(() => {
+    opponentStatsRef.current = opponentStats;
+  }, [opponentStats]);
+
+  useEffect(() => {
+    raceMetaRef.current = raceMeta;
+  }, [raceMeta])
+
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status])
+
+  // Pixi.js application instance will be created inside the effect and cleaned up on unmount.
 
   /* Convert to normalized device coordinates */
   const NDC = (x: number, y: number) => {
@@ -100,11 +125,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentSt
   };
 
   useEffect(() => {
+    let app: Application | null = null;
 
     (async () => {
-      if (!canvas.current) {
-        return;
-      }
+      if (!canvas.current) return;
 
       app = await initApp(canvas.current);
       if (!app) return;
@@ -167,14 +191,39 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentSt
         const dt = delta.deltaMS / 1000;
         UpdateRope(rope, dt);
 
-        const playerWpm = playerStats.wpm;
-        const opponentWpm = opponentStats.wpm;
+        // Read latest values from refs so the closure sees updates from React
+        const playerWpm = Math.max(playerStatsRef.current.wpm, 1);
+        const opponentWpm = Math.max(opponentStatsRef.current.wpm, 1);
+        const playerProg = (playerStatsRef.current as any).progress ?? 0;
+        const opponentProg = (opponentStatsRef.current as any).progress ?? 0;
 
-        //console.log({ redRopeParticleIndex, blueRopeParticleIndex, playerWpm, opponentWpm });
-        
+        // Estimate time to completion for player & opponent (with safe numeric coercion)
+        const passageLength = Number(raceMetaRef.current?.passage.length ?? 0);
+        const lettersLeftPlayer = passageLength - (Number(playerProg) / 100) * passageLength;
+        const playerTimeToCompletion = Math.min(lettersLeftPlayer / (playerWpm / 60), 2000);
+
+        const lettersLeftOpponent = passageLength - (Number(opponentProg) / 100) * passageLength;
+        const opponentTimeToCompletion = Math.min(lettersLeftOpponent / (opponentWpm / 60), 2000);
+
+        // Include status in the log so the prop is referenced and to aid debugging
+        // eslint-disable-next-line no-console
+        console.log(`status=${status} ttc(opponent)=${opponentTimeToCompletion.toFixed(2)} ttc(player)=${playerTimeToCompletion.toFixed(2)}`);
 
         if (DRAW_ROPE_NODES)
           drawRopeViz(RopeNodeVisualiser, rope);
+
+        // Cleanup after game finishes
+        if (statusRef.current === "finished")
+        {
+          try {
+            app?.ticker.stop();
+            app?.destroy(true, { children: true, texture: true });
+            app = null;
+            console.log("Cleaned canvas.")
+          } catch (err) {
+            console.warn('Error while destroying PIXI app', err);
+          }
+        }
       });
     })();
 
