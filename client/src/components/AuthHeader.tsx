@@ -8,13 +8,26 @@ interface AuthHeaderProps {
   back?: () => void
 }
 
+function getUsernameFromToken(): string | null {
+  const token = localStorage.getItem('token')
+  if (!token) return null
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.username ?? null
+  } catch {
+    return null
+  }
+}
+
 function AuthHeader({ showAuth, center, exit, back }: AuthHeaderProps) {
   const isLoggedIn = !!localStorage.getItem('token')
+  const username = localStorage.getItem('username') ?? getUsernameFromToken()
 
   const handleLogout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('userId')
     localStorage.removeItem('email')
+    localStorage.removeItem('username')
     globalThis.location.href = '/'
   }
 
@@ -29,7 +42,10 @@ function AuthHeader({ showAuth, center, exit, back }: AuthHeaderProps) {
       <div className="header-right">
         {showAuth && (
           isLoggedIn ? (
-            <button className="header-logout-btn" onClick={handleLogout}>Log Out</button>
+            <>
+              {username && <span className="header-username">{username}</span>}
+              <button className="header-logout-btn" onClick={handleLogout}>Log Out</button>
+            </>
           ) : (
             <>
               <Link to="/register">Sign Up</Link>

@@ -82,6 +82,12 @@ body {
   background: var(--bg-input);
 }
 
+.header-username {
+  font-size: 14px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
 .header-logout-btn {
   background: none;
   border: 1px solid var(--border);
