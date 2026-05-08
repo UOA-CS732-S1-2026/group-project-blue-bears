@@ -83,30 +83,6 @@
   background: #222638;
 }
 
-/* Remember me + forgot password row */
-.auth-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.auth-remember {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--text-muted);
-  cursor: pointer;
-  user-select: none;
-}
-
-.auth-remember input[type='checkbox'] {
-  width: 15px;
-  height: 15px;
-  accent-color: var(--accent-red);
-  cursor: pointer;
-}
-
 /* Links */
 .auth-link {
   font-size: 13px;
