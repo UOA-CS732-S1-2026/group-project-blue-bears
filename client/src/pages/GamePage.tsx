@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import TypingDisplay from "../components/TypingDisplay";
-import { useGameLogic, formatTime, type GameStatus, type GameStats } from "../hooks/useGameLogic";
+import { useGameLogic, formatTime, type GameStats } from "../hooks/useGameLogic";
 import useSocket from "../hooks/useSocket";
 import "./GamePage.css";
 import GameCanvas from "../components/GameCanvas";

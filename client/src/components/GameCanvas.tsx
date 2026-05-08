@@ -27,6 +27,7 @@ interface GameCanvasProps {
 
 const DRAW_ROPE_NODES = false;
 const SPRITE_SMOOTHING = 12;
+const MAX_SPRITE_PULL = 0.4;
 
 const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentStats, raceMeta }) => {
   // Reference to HTML canvas element for rendering scene.
@@ -119,7 +120,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentSt
     await app.init({
       canvas: canvas,
       backgroundColor: 0xffffff,
-      width: canvas.clientWidth || 800,
+      width: canvas.clientWidth || 1200,
       height: canvas.clientHeight || 480,
     });
 
@@ -212,9 +213,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentSt
         // Scale quadratically to exaggerate the winning effect
         // Horizontal offset for player sprites.
         const normalized = (playerTimeToCompletion - opponentTimeToCompletion) / (playerTimeToCompletion + opponentTimeToCompletion);
-        const targetPullAmount = Math.sign(normalized) * Math.pow(Math.abs(normalized), 2) * 0.4;
+        const targetPullAmount = Math.sign(normalized) * Math.pow(Math.abs(normalized), 2) * MAX_SPRITE_PULL;
 
-        // Ease the visual position toward the latest target so changes feel like a tween.
+        // Ease the visual position toward the latest target
         const smoothing = 1 - Math.exp(-SPRITE_SMOOTHING * dt);
         smoothPullAmountRef.current += (targetPullAmount - smoothPullAmountRef.current) * smoothing;
 
