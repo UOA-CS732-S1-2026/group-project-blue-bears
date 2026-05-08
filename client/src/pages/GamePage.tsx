@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import TypingDisplay from "../components/TypingDisplay";
 import { useGameLogic, formatTime } from "../hooks/useGameLogic";
 import "./GamePage.css";
+import GameGraphicsTestPage from "./GameGraphicsTestPage";
+import GameCanvas from "../components/GameCanvas";
 
 const PASSAGE =
   "The journey of a thousand miles begins with a single step. Similarly, mastering typing starts with learning proper finger placement on the keyboard.";
@@ -113,6 +115,9 @@ const GamePage: React.FC = () => {
 
   return (
     <div className="game-page" onClick={handlePageClick}>
+
+      <GameCanvas />
+
       <input
         ref={inputRef}
         value={userInput}
