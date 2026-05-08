@@ -9,6 +9,8 @@ import './LobbyPage.css'
 
 const ACTIVE_LOBBY_CODE_KEY = 'activeLobbyCode'
 const ACTIVE_LOBBY_USER_KEY = 'activeLobbyUserId'
+const ROOM_FULL_MESSAGE = 'Lobby is full. Please try another code.'
+const ROOM_NOT_FOUND_MESSAGE = 'No lobby found for that code. Check the code and try again.'
 
 interface RoomPlayerPayload {
   userId: string
@@ -25,6 +27,11 @@ interface LobbyLocationState {
 
 interface RoomCreatedPayload {
   roomId: string
+}
+
+interface RoomProbePayload {
+  roomId: string
+  players: RoomPlayerPayload[]
 }
 
 interface GameStartPayload {
@@ -57,9 +64,6 @@ function LobbyPage() {
   )
   const [roomPlayers, setRoomPlayers] = useState<RoomPlayerPayload[]>([])
   const [statusMessage, setStatusMessage] = useState('Connecting to race server...')
-  
-  const [joinRetrying, setJoinRetrying] = useState(false)
-  const probeIntervalRef = useRef<number | null>(null)
 
   const currentUserLabel = currentUserName.trim().toUpperCase() || 'PLAYER'
   const me = roomPlayers.find(player => player.userId === userIdRef.current)
@@ -206,13 +210,8 @@ function LobbyPage() {
       requestedRoomRef.current = true
 
       if (initialRoomId) {
-        socket.emit('join_room', {
-          roomId: initialRoomId,
-          userId: userIdRef.current,
-          displayName: currentUserLabel,
-          avatarKind: currentUserAvatarKind,
-        })
-        setStatusMessage('Waiting for opponent...')
+        socket.emit('probe_room', { roomId: initialRoomId })
+        setStatusMessage('Checking lobby code...')
       } else {
         socket.emit('create_room', {
           userId: userIdRef.current,
@@ -224,24 +223,16 @@ function LobbyPage() {
 
     const handleRoomState = (payload: { players: RoomPlayerPayload[] }) => {
       setRoomPlayers(payload.players)
-      setJoinRetrying(false)
-
       const currentPlayer = payload.players.find(player => player.userId === userIdRef.current)
       const opponentPlayer = payload.players.find(player => player.userId !== userIdRef.current)
 
       if (!currentPlayer) {
         if (initialRoomId) {
-          // We are not a member of the room and it was a join attempt — show full state
-          setStatusMessage('Room is full. Once there is space, you will be placed into lobby automatically.')
+          setStatusMessage(ROOM_FULL_MESSAGE)
         } else {
-          setStatusMessage('Waiting for a slot in this room...')
+          setStatusMessage('Unable to join this lobby.')
         }
         return
-      }
-
-      if (probeIntervalRef.current) {
-        window.clearInterval(probeIntervalRef.current)
-        probeIntervalRef.current = null
       }
 
       if (currentPlayer.ready && opponentPlayer?.ready) {
@@ -264,45 +255,43 @@ function LobbyPage() {
 
     const handleRoomCreated = (payload: RoomCreatedPayload) => {
       setRoomId(payload.roomId)
-      setJoinRetrying(false)
       setStatusMessage('Waiting for opponent...')
     }
 
     const handleRoomFull = (payload: { roomId: string; players: RoomPlayerPayload[] }) => {
       setRoomId(payload.roomId)
       setRoomPlayers(payload.players)
-      setJoinRetrying(false)
-      setStatusMessage('Room is full. Once there is space, you will be placed into lobby automatically.')
-
-      // start probing for availability every 3s
-      if (probeIntervalRef.current) {
-        window.clearInterval(probeIntervalRef.current)
-      }
-      probeIntervalRef.current = window.setInterval(() => {
-        socket.emit('probe_room', { roomId: payload.roomId })
-      }, 3000)
+      setStatusMessage(ROOM_FULL_MESSAGE)
     }
 
-    const handleRoomProbe = (payload: { roomId: string; players: RoomPlayerPayload[] }) => {
+    const handleRoomProbe = (payload: RoomProbePayload) => {
+      const targetRoomId = (payload.roomId || initialRoomId).trim().toUpperCase()
+
+      if (!targetRoomId) {
+        return
+      }
+
+      setRoomId(targetRoomId)
       setRoomPlayers(payload.players)
 
-      if (payload.players.length < 2) {
-        const targetRoomId = (payload.roomId || roomId || initialRoomId).trim().toUpperCase()
-
-        if (!joinRetrying && targetRoomId && connected && identityReady) {
-          setJoinRetrying(true)
-          setStatusMessage('Space found. Joining lobby...')
-          socket.emit('join_room', {
-            roomId: targetRoomId,
-            userId: userIdRef.current,
-            displayName: currentUserLabel,
-            avatarKind: currentUserAvatarKind,
-          })
-        }
-      } else {
-        setJoinRetrying(false)
-        setStatusMessage('Room is full. Once there is space, you will be placed into lobby automatically.')
+      if (payload.players.length === 0) {
+        sessionStorage.removeItem(ACTIVE_LOBBY_CODE_KEY)
+        setStatusMessage(ROOM_NOT_FOUND_MESSAGE)
+        return
       }
+
+      if (payload.players.length >= 2) {
+        setStatusMessage(ROOM_FULL_MESSAGE)
+        return
+      }
+
+      setStatusMessage('Joining lobby...')
+      socket.emit('join_room', {
+        roomId: targetRoomId,
+        userId: userIdRef.current,
+        displayName: currentUserLabel,
+        avatarKind: currentUserAvatarKind,
+      })
     }
 
     const handleGameStart = (payload: GameStartPayload) => {
@@ -325,10 +314,16 @@ function LobbyPage() {
 
     const handleSocketError = (payload: { message?: string }) => {
       const message = payload.message || 'A socket error occurred.'
+      const normalizedMessage = message.toLowerCase()
 
-      if (message === 'Room is full') {
-        setJoinRetrying(false)
-        setStatusMessage('Room is full. Once there is space, you will be placed into lobby automatically.')
+      if (normalizedMessage.includes('full')) {
+        setStatusMessage(ROOM_FULL_MESSAGE)
+        return
+      }
+
+      if (normalizedMessage.includes('not found') || normalizedMessage.includes('does not exist')) {
+        sessionStorage.removeItem(ACTIVE_LOBBY_CODE_KEY)
+        setStatusMessage(ROOM_NOT_FOUND_MESSAGE)
         return
       }
 
@@ -351,10 +346,6 @@ function LobbyPage() {
       socket.off('room_probe', handleRoomProbe)
       socket.off('opponent_disconnected', handleOpponentDisconnected)
       socket.off('error', handleSocketError)
-      if (probeIntervalRef.current) {
-        window.clearInterval(probeIntervalRef.current)
-        probeIntervalRef.current = null
-      }
     }
   }, [connected, currentUserAvatarKind, currentUserLabel, identityReady, initialRoomId, navigate, socket])
 
