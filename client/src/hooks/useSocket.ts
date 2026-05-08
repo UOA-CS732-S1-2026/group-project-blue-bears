@@ -22,7 +22,9 @@ function useSocket() {
     return () => {
       socket.off('connect', handleConnect)
       socket.off('disconnect', handleDisconnect)
-      socket.disconnect()
+      // Do NOT call socket.disconnect() here — the socket is a module-level singleton
+      // shared across all pages. Disconnecting on unmount (e.g. when LobbyPage gives way
+      // to GamePage) would drop the server-side room membership and kill all in-race events.
     }
   }, [])
 
