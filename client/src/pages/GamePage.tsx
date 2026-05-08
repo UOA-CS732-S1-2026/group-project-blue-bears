@@ -1,13 +1,11 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import TypingDisplay from "../components/TypingDisplay";
 import { useGameLogic, formatTime } from "../hooks/useGameLogic";
+import useSocket from "../hooks/useSocket";
 import "./GamePage.css";
 import GameGraphicsTestPage from "./GameGraphicsTestPage";
 import GameCanvas from "../components/GameCanvas";
-
-const PASSAGE =
-  "The journey of a thousand miles begins with a single step. Similarly, mastering typing starts with learning proper finger placement on the keyboard.";
 
 const TOTAL_SECONDS = 60;
 
@@ -21,49 +19,164 @@ interface GameLocationState {
   startAt?: number;
 }
 
-// Simulated opponent - swap out for real data when backend is ready
-const MOCK_OPPONENT_STATS = {
-  wpm: 64,
-  accuracy: 98,
-  inaccuracies: 2,
-};
+interface OpponentStats {
+  wpm: number;
+  accuracy: number;
+}
+
+interface OpponentProgressPayload {
+  roomId: string;
+  userId: string;
+  progress: number;
+  wpm: number;
+  accuracy: number;
+}
+
+interface FinisherResult {
+  userId: string;
+  username: string;
+  wpm: number;
+  accuracy: number;
+  finished: boolean;
+}
+
+interface RaceResultsPayload {
+  roomId: string;
+  results: FinisherResult[];
+}
 
 const GamePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { socket } = useSocket();
   const inputRef = useRef<HTMLInputElement>(null);
   const locationState = (location.state as GameLocationState | null) ?? {};
   const raceStartAtRef = useRef(locationState.startAt ?? Date.now() + 3000);
   const raceStartAt = raceStartAtRef.current;
   const raceDuration = locationState.totalSeconds ?? TOTAL_SECONDS;
-  const racePassage = locationState.passageText ?? PASSAGE;
+  const racePassage = locationState.passageText ?? "";
   const countdownSeed = locationState.countdownSeconds ?? 3;
   const [countdown, setCountdown] = React.useState<number | null>(null);
   const [didStartRace, setDidStartRace] = React.useState(false);
 
+  // Real-time opponent stats updated via socket
+  const [opponentStats, setOpponentStats] = useState<OpponentStats>({ wpm: 0, accuracy: 100 });
+  const finalOpponentStatsRef = useRef<OpponentStats | null>(null);
+
   const { userInput, status, timeLeft, stats, start, handleInput } = useGameLogic({
     passage: racePassage,
     totalSeconds: raceDuration,
-    onGameEnd: (finalStats: typeof MOCK_OPPONENT_STATS, elapsed: number) => {
-      const opponent = MOCK_OPPONENT_STATS;
-
-      let outcome: "victory" | "defeat" | "draw" = "draw";
-      if (finalStats.wpm > opponent.wpm) outcome = "victory";
-      else if (finalStats.wpm < opponent.wpm) outcome = "defeat";
-
-      navigate("/result", {
-        state: {
+    onGameEnd: (finalStats, elapsed) => {
+      // Emit race_complete so the server records results and triggers race_results for both players
+      if (locationState.roomId && locationState.userId) {
+        socket.emit("race_complete", {
           roomId: locationState.roomId,
           userId: locationState.userId,
-          username: locationState.username,
-          outcome,
-          playerStats: finalStats,
-          opponentStats: opponent,
-          duration: formatTime(elapsed),
-        },
-      });
+          wpm: finalStats.wpm,
+          accuracy: finalStats.accuracy,
+        });
+      }
+
+      // If we already have opponent's final stats, navigate immediately
+      // Otherwise wait for race_results from the server
+      if (finalOpponentStatsRef.current) {
+        const opponent = finalOpponentStatsRef.current;
+        let outcome: "victory" | "defeat" | "draw" = "draw";
+        if (finalStats.wpm > opponent.wpm) outcome = "victory";
+        else if (finalStats.wpm < opponent.wpm) outcome = "defeat";
+
+        navigate("/result", {
+          state: {
+            roomId: locationState.roomId,
+            userId: locationState.userId,
+            username: locationState.username,
+            outcome,
+            playerStats: finalStats,
+            opponentStats: { ...opponent, inaccuracies: 0 },
+            duration: formatTime(elapsed),
+          },
+        });
+      }
     },
   });
+
+  // Keep a ref of current stats so we can read them inside socket callbacks
+  const statsRef = useRef(stats);
+  useEffect(() => {
+    statsRef.current = stats;
+  }, [stats]);
+
+  // Emit progress_update with live wpm/accuracy every time stats change while playing
+  useEffect(() => {
+    if (status !== "playing" || !locationState.roomId || !locationState.userId) return;
+
+    const progress = racePassage.length > 0
+      ? Math.round((userInput.length / racePassage.length) * 100)
+      : 0;
+
+    socket.emit("progress_update", {
+      roomId: locationState.roomId,
+      userId: locationState.userId,
+      progress,
+      wpm: stats.wpm,
+      accuracy: stats.accuracy,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stats.wpm, stats.accuracy, userInput.length]);
+
+  // Listen for real-time opponent progress (wpm + accuracy)
+  useEffect(() => {
+    const handleOpponentProgress = (payload: OpponentProgressPayload) => {
+      setOpponentStats({ wpm: payload.wpm, accuracy: payload.accuracy });
+    };
+
+    // race_results carries final verified stats for both players
+    const handleRaceResults = (payload: RaceResultsPayload) => {
+      const myId = locationState.userId;
+      const myResult = payload.results.find(r => r.userId === myId);
+      const opponentResult = payload.results.find(r => r.userId !== myId);
+
+      if (!opponentResult) return;
+
+      finalOpponentStatsRef.current = { wpm: opponentResult.wpm, accuracy: opponentResult.accuracy };
+
+      // Only navigate if the game has already ended on our side
+      if (status === "finished" || statsRef.current) {
+        const finalStats = myResult ?? statsRef.current;
+        let outcome: "victory" | "defeat" | "draw" = "draw";
+        if (finalStats.wpm > opponentResult.wpm) outcome = "victory";
+        else if (finalStats.wpm < opponentResult.wpm) outcome = "defeat";
+
+        navigate("/result", {
+          state: {
+            roomId: locationState.roomId,
+            userId: locationState.userId,
+            username: locationState.username,
+            outcome,
+            playerStats: {
+              wpm: finalStats.wpm,
+              accuracy: finalStats.accuracy,
+              inaccuracies: (finalStats as typeof stats).inaccuracies ?? 0,
+            },
+            opponentStats: {
+              wpm: opponentResult.wpm,
+              accuracy: opponentResult.accuracy,
+              inaccuracies: 0,
+            },
+            duration: formatTime(raceDuration - timeLeft),
+          },
+        });
+      }
+    };
+
+    socket.on("opponent_progress", handleOpponentProgress);
+    socket.on("race_results", handleRaceResults);
+
+    return () => {
+      socket.off("opponent_progress", handleOpponentProgress);
+      socket.off("race_results", handleRaceResults);
+    };
+  }, [locationState.roomId, locationState.userId, locationState.username, navigate, socket, status, raceDuration, timeLeft]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -73,8 +186,6 @@ const GamePage: React.FC = () => {
     if (countdown !== null || status !== "playing") {
       return;
     }
-
-    // Wait for the input to become enabled, then focus it immediately at race start.
     window.requestAnimationFrame(() => {
       inputRef.current?.focus();
     });
@@ -165,17 +276,17 @@ const GamePage: React.FC = () => {
           )}
         </div>
 
-        {/* Opponent Stats */}
+        {/* Opponent Stats — real data from socket */}
         <div className="game-page__player-card game-page__player-card--them">
           <div className="game-page__card-header">Them</div>
           <div className="game-page__card-stats">
             <div className="game-page__stat-item">
               <span className="game-page__stat-label">WPM</span>
-              <span className="game-page__stat-value">{MOCK_OPPONENT_STATS.wpm}</span>
+              <span className="game-page__stat-value">{opponentStats.wpm}</span>
             </div>
             <div className="game-page__stat-item">
               <span className="game-page__stat-label">Accuracy</span>
-              <span className="game-page__stat-value">{MOCK_OPPONENT_STATS.accuracy}%</span>
+              <span className="game-page__stat-value">{opponentStats.accuracy}%</span>
             </div>
           </div>
         </div>

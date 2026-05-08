@@ -17,6 +17,7 @@ export interface AuthResponse {
     token: string;
     userId: string;
     email: string;
+    username: string;
 }
 
 export const loginUser = async (payload: LoginPayload): Promise<AuthResponse> => {
