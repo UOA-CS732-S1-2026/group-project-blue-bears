@@ -21,6 +21,7 @@ interface GameLocationState {
 export interface OpponentStats {
   wpm: number;
   accuracy: number;
+  progress?: number;
 }
 
 interface OpponentProgressPayload {
@@ -126,7 +127,7 @@ const GamePage: React.FC = () => {
   // Listen for real-time opponent progress (wpm + accuracy)
   useEffect(() => {
     const handleOpponentProgress = (payload: OpponentProgressPayload) => {
-      setOpponentStats({ wpm: payload.wpm, accuracy: payload.accuracy });
+      setOpponentStats({ wpm: payload.wpm, accuracy: payload.accuracy, progress: payload.progress });
     };
 
     // race_results carries final verified stats for both players

@@ -30,10 +30,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentSt
   // Reference to HTML canvas element for rendering scene.
   const canvas = useRef<HTMLCanvasElement | null>(null);
 
-  console.log(status);
-  console.log(playerStats);
-  console.log(opponentStats);
-
   // Pixi.js application instance.
   let app: Application | null;
 
@@ -46,6 +42,25 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentSt
     let posY = ((1 - y) / 2) * h;
 
     return [posX, posY] as const;
+  };
+
+  const findClosestRopeParticleIndex = (rope: Rope, targetX: number, targetY: number) => {
+    let closestIndex = 0;
+    let smallestDistanceSquared = Number.POSITIVE_INFINITY;
+
+    for (let i = 0; i < rope.particles.length; i++) {
+      const particle = rope.particles[i];
+      const dx = particle.x - targetX;
+      const dy = particle.y - targetY;
+      const distanceSquared = dx * dx + dy * dy;
+
+      if (distanceSquared < smallestDistanceSquared) {
+        smallestDistanceSquared = distanceSquared;
+        closestIndex = i;
+      }
+    }
+
+    return closestIndex;
   };
 
   const drawRopeViz = (RopeGraphic: Graphics, Rope: Rope) => {
@@ -124,9 +139,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentSt
 
       const rope = CreateRope(...NDC(-1.1, -0.15), ...NDC(1.1, -0.15), 20);
 
-      // Temporary pins - just for testing.
-      rope.particles[5].pinned = true;
-      rope.particles[15].pinned = true;
+      const redRopeParticleIndex = findClosestRopeParticleIndex(rope, redSprite.x, redSprite.y);
+      const blueRopeParticleIndex = findClosestRopeParticleIndex(rope, blueSprite.x, blueSprite.y);
+      rope.particles[redRopeParticleIndex].pinned = true;
+      rope.particles[blueRopeParticleIndex].pinned = true;
 
       // MeshRope for stylization
       const ropeTextureAsset = await Assets.load(ropeTexture);
@@ -150,6 +166,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentSt
         // get dt in seconds
         const dt = delta.deltaMS / 1000;
         UpdateRope(rope, dt);
+
+        const playerWpm = playerStats.wpm;
+        const opponentWpm = opponentStats.wpm;
+
+        //console.log({ redRopeParticleIndex, blueRopeParticleIndex, playerWpm, opponentWpm });
+        
 
         if (DRAW_ROPE_NODES)
           drawRopeViz(RopeNodeVisualiser, rope);
