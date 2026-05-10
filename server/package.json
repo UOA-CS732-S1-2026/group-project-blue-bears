@@ -7,7 +7,7 @@
     "test": "jest --runInBand",
     "test:coverage": "jest --runInBand --coverage",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "tsc",
+    "build": "tsc && node -e \"const fs=require('fs');fs.mkdirSync('dist/data',{recursive:true});fs.copyFileSync('src/data/commonWords.json','dist/data/commonWords.json');\"",
     "start": "node dist/index.js",
     "verify:modules": "node scripts/verification/verifyModules.js"
   },

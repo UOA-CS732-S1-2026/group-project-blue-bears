@@ -48,6 +48,12 @@ body {
   letter-spacing: 0.08em;
   color: var(--text-primary);
   text-transform: uppercase;
+  width: fit-content;
+  text-decoration: none;
+}
+
+.header-logo:hover {
+  opacity: 0.8;
 }
 
 .header-center {
@@ -120,15 +126,6 @@ body {
 
 .header-exit-btn:hover {
   background: var(--accent-yellow);
-}
-
-.header-logo {
-  text-decoration: none;
-  color: var(--text-primary);
-}
-
-.header-logo:hover {
-  opacity: 0.8;
 }
 
 /* Footer */
