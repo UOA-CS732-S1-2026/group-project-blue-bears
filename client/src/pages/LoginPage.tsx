@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import AuthHeader from '../components/AuthHeader'
 import AuthInput from '../components/AuthInput'
 import { loginUser } from '../services/authService'
@@ -71,7 +71,7 @@ function LoginPage() {
           </button>
 
           <p className="auth-switch">
-            No account? <a href="/register" className="auth-link">Sign up</a>
+            No account? <Link to="/register" className="auth-link">Sign up</Link>
           </p>
         </div>
       </main>
