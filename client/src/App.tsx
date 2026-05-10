@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import LandingPage from './pages/LandingPage'
@@ -6,17 +6,8 @@ import LobbyPage from './pages/LobbyPage'
 import JoinLobbyCodePage from './pages/JoinLobbyCodePage'
 import LeaderboardPage from './pages/LeaderboardPage'
 import ProfilePage from './pages/ProfilePage'
-import { type ResultOutcome } from './components/ResultBanner'
-import { type PlayerStats } from './components/StatsTable'
 import GamePage from './pages/GamePage'
 import ResultRoute from "./pages/Resultroute";
-
-interface ResultRouteState {
-  outcome: ResultOutcome
-  playerStats: PlayerStats
-  opponentStats: PlayerStats
-  duration: string
-}
 
 function App() {
   return (
