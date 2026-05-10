@@ -4,8 +4,23 @@
  */
 import mongoose from 'mongoose';
 import { Server, Socket } from 'socket.io';
+import path from 'path';
+import fs from 'fs';
 
 const { createMatchResult } = require('../../data-access/matchDataAccess');
+
+// Load local word list once at startup
+const WORDS_PATH = path.join(__dirname, '../data/commonWords.json');
+const WORD_LIST: string[] = JSON.parse(fs.readFileSync(WORDS_PATH, 'utf-8'));
+const PASSAGE_WORD_COUNT = 50;
+
+const generatePassage = (): string => {
+  const selected: string[] = [];
+  for (let i = 0; i < PASSAGE_WORD_COUNT; i++) {
+    selected.push(WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)]);
+  }
+  return selected.join(' ');
+};
 
 interface JoinRoomPayload {
   roomId: string;
@@ -36,6 +51,8 @@ interface ProgressUpdatePayload {
   roomId: string;
   userId: string;
   progress: number;
+  wpm?: number;
+  accuracy?: number;
 }
 
 interface RaceCompletePayload {
@@ -69,6 +86,8 @@ interface RoomState {
   passageText: string;
   finishers: Map<string, FinisherResult>;
   raceTimeout?: NodeJS.Timeout;
+  rematchReady: Map<string, boolean>;
+  playersLeftResultScreen: Set<string>;
 }
 
 const rooms = new Map<string, RoomState>();
@@ -76,11 +95,13 @@ const socketRoomLookup = new Map<string, string>();
 
 const ROOM_CODE_LENGTH = 6;
 const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const ROOM_CODE_PATTERN = new RegExp(`^[${ROOM_CODE_ALPHABET}]{${ROOM_CODE_LENGTH}}$`);
 
-const DEFAULT_PASSAGE =
-  'The quick brown fox jumps over the lazy dog while bright comets trace long arcs across the midnight sky.';
 const RACE_DURATION_SECONDS = 60;
 const PRE_RACE_COUNTDOWN_SECONDS = 3;
+// Extra time to allow clients to navigate from result -> game before startAt.
+// This avoids cases where clients start sending progress updates before the server flips raceStarted.
+const REMATCH_NAVIGATION_DELAY_MS = 1000;
 
 const buildDefaultResult = (player: RoomPlayer): FinisherResult => ({
   userId: player.userId,
@@ -96,6 +117,12 @@ const buildRoomPlayerPayload = (player: RoomPlayer) => ({
   avatarKind: player.avatarKind,
   ready: player.ready,
 });
+
+const buildPlayersSnapshot = (room: RoomState) => room.players.map(buildRoomPlayerPayload);
+
+const normalizeRoomId = (roomId: string): string => roomId.trim().toUpperCase();
+
+const isValidRoomCodeFormat = (roomId: string): boolean => ROOM_CODE_PATTERN.test(roomId);
 
 const normalizePlayerMetadata = (
   payload: { displayName?: string; avatarKind?: 'guest' | 'initials'; username?: string },
@@ -138,8 +165,10 @@ const getOrCreateRoom = (roomId: string): RoomState => {
     players: [],
     countdownStarted: false,
     raceStarted: false,
-    passageText: DEFAULT_PASSAGE,
+    passageText: '', // Generated fresh by generatePassage() inside emitGameStart
     finishers: new Map<string, FinisherResult>(),
+    rematchReady: new Map<string, boolean>(),
+    playersLeftResultScreen: new Set<string>(),
   };
 
   rooms.set(roomId, room);
@@ -147,6 +176,8 @@ const getOrCreateRoom = (roomId: string): RoomState => {
 };
 
 const emitGameStart = (io: Server, room: RoomState): void => {
+  // Generate a fresh passage for each race
+  room.passageText = generatePassage();
   const startAt = Date.now() + PRE_RACE_COUNTDOWN_SECONDS * 1000;
 
   io.to(room.roomId).emit('game_start', {
@@ -156,12 +187,32 @@ const emitGameStart = (io: Server, room: RoomState): void => {
     countdownSeconds: PRE_RACE_COUNTDOWN_SECONDS,
     startAt,
   });
+
+  // Mark the race as started after the countdown elapses so the server
+  // begins accepting progress_update events at the same moment the clients do.
+  setTimeout(() => {
+    const activeRoom = rooms.get(room.roomId);
+    if (activeRoom) {
+      activeRoom.raceStarted = true;
+    }
+  }, PRE_RACE_COUNTDOWN_SECONDS * 1000);
 };
+
+const scheduleRaceStarted = (roomId: string, startAt: number): void => {
+  const delayMs = Math.max(0, startAt - Date.now());
+  setTimeout(() => {
+    const activeRoom = rooms.get(roomId);
+    if (activeRoom) {
+      activeRoom.raceStarted = true;
+    }
+  }, delayMs);
+};
+
 
 const emitRoomState = (io: Server, room: RoomState): void => {
   io.to(room.roomId).emit('room_state', {
     roomId: room.roomId,
-    players: room.players.map(buildRoomPlayerPayload),
+    players: buildPlayersSnapshot(room),
   });
 };
 
@@ -216,7 +267,15 @@ const emitRaceResults = async (io: Server, room: RoomState): Promise<void> => {
     results,
   });
 
-  cleanupRoom(room.roomId);
+  // DO NOT clean up room here - keep it alive for rematch handling
+  // Schedule cleanup after 5 minutes of inactivity
+  if (room.raceTimeout) {
+    clearTimeout(room.raceTimeout);
+  }
+  room.raceTimeout = setTimeout(() => {
+    console.log(`[roomManager] Auto-cleaning up room ${room.roomId} after 5 minutes of result screen time`);
+    cleanupRoom(room.roomId);
+  }, 5 * 60 * 1000);
 };
 
 const startCountdown = (io: Server, room: RoomState): void => {
@@ -283,24 +342,44 @@ export const registerSocketHandlers = (io: Server): void => {
     socket.on('join_room', (payload: JoinRoomPayload) => {
       const { roomId, userId } = payload;
       const { displayName, avatarKind } = normalizePlayerMetadata(payload);
+      const normalizedRoomId = normalizeRoomId(roomId || '');
 
-      if (!roomId || !userId) {
+      if (!normalizedRoomId || !userId) {
         socket.emit('error', { message: 'Invalid room join payload' });
         return;
       }
 
-      const room = getOrCreateRoom(roomId);
+      if (!isValidRoomCodeFormat(normalizedRoomId)) {
+        socket.emit('error', {
+          reason: 'INVALID_CODE',
+          message: 'Lobby code does not exist.',
+          roomId: normalizedRoomId,
+        });
+        return;
+      }
 
-      if (room.players.length >= 2) {
-        // Inform the requester that the room is full and provide a snapshot
-        socket.emit('room_full', {
-          roomId,
-          players: room.players.map(buildRoomPlayerPayload),
+      const room = rooms.get(normalizedRoomId);
+      if (!room) {
+        socket.emit('error', {
+          reason: 'INVALID_CODE',
+          message: 'Lobby code does not exist.',
+          roomId: normalizedRoomId,
         });
         return;
       }
 
       const existingPlayer = room.players.find(player => player.userId === userId);
+      if (!existingPlayer && room.players.length >= 2) {
+        socket.emit('room_full', {
+          reason: 'ROOM_FULL',
+          message: 'This lobby is full.',
+          retryable: false,
+          roomId: normalizedRoomId,
+          players: buildPlayersSnapshot(room),
+        });
+        return;
+      }
+
       if (existingPlayer) {
         existingPlayer.socketId = socket.id;
         existingPlayer.displayName = displayName;
@@ -316,28 +395,53 @@ export const registerSocketHandlers = (io: Server): void => {
         });
       }
 
-      socket.join(roomId);
-      socketRoomLookup.set(socket.id, roomId);
+      socket.join(normalizedRoomId);
+      socketRoomLookup.set(socket.id, normalizedRoomId);
 
       emitRoomState(io, room);
 
       emitRoomState(io, room);
 
       if (room.players.length === 2) {
-        io.to(roomId).emit('room_ready', {
-          roomId,
-          players: room.players.map(buildRoomPlayerPayload),
+        io.to(normalizedRoomId).emit('room_ready', {
+          roomId: normalizedRoomId,
+          players: buildPlayersSnapshot(room),
         });
       }
     });
 
     // Allow external sockets to probe room occupancy without joining
     socket.on('probe_room', (payload: { roomId: string }) => {
-      const { roomId } = payload;
-      const room = rooms.get(roomId);
+      const normalizedRoomId = normalizeRoomId(payload.roomId || '');
+
+      if (!normalizedRoomId || !isValidRoomCodeFormat(normalizedRoomId)) {
+        socket.emit('room_probe', {
+          exists: false,
+          reason: 'INVALID_CODE',
+          message: 'Lobby code does not exist.',
+          roomId: normalizedRoomId,
+          players: [],
+        });
+        return;
+      }
+
+      const room = rooms.get(normalizedRoomId);
+      if (!room) {
+        socket.emit('room_probe', {
+          exists: false,
+          reason: 'INVALID_CODE',
+          message: 'Lobby code does not exist.',
+          roomId: normalizedRoomId,
+          players: [],
+        });
+        return;
+      }
+
       socket.emit('room_probe', {
-        roomId,
-        players: room ? room.players.map(buildRoomPlayerPayload) : [],
+        exists: true,
+        roomId: normalizedRoomId,
+        players: buildPlayersSnapshot(room),
+        isFull: room.players.length >= 2,
       });
     });
 
@@ -373,9 +477,7 @@ export const registerSocketHandlers = (io: Server): void => {
       }
 
       room.countdownStarted = true;
-      room.passageText = payload.passageText ?? DEFAULT_PASSAGE;
-
-      // TODO: Replace this with Quotable API passage fetching once API integration is available.
+      // Passage is generated server-side inside emitGameStart via generatePassage()
       startCountdown(io, room);
     });
 
@@ -392,6 +494,8 @@ export const registerSocketHandlers = (io: Server): void => {
         roomId: payload.roomId,
         userId: payload.userId,
         progress: clampedProgress,
+        wpm: payload.wpm ?? 0,
+        accuracy: payload.accuracy ?? 100,
       });
     });
 
@@ -423,6 +527,8 @@ export const registerSocketHandlers = (io: Server): void => {
         socket.to(payload.roomId).emit('opponent_finished', {
           roomId: payload.roomId,
           userId: payload.userId,
+          wpm: payload.wpm,
+          accuracy: payload.accuracy,
         });
 
         if (!room.raceTimeout) {
@@ -440,6 +546,149 @@ export const registerSocketHandlers = (io: Server): void => {
       if (room.finishers.size >= 2) {
         void emitRaceResults(io, room);
       }
+    });
+
+    socket.on('ready_for_rematch', (payload: { roomId: string; userId: string }) => {
+      console.log(`[roomManager] ready_for_rematch received:`, payload);
+      const socketRoomId = socketRoomLookup.get(socket.id);
+      if (!socketRoomId || socketRoomId !== payload.roomId) {
+        return;
+      }
+
+      const room = rooms.get(payload.roomId);
+      if (!room) {
+        console.log(`[roomManager] Room not found for roomId: ${payload.roomId}`);
+        return;
+      }
+
+      const player = room.players.find(current => current.socketId === socket.id);
+      if (!player) {
+        return;
+      }
+
+      // Reject rematch if anyone has left the result screen
+      if (room.playersLeftResultScreen.size > 0) {
+        console.log(`[roomManager] Cannot ready for rematch - players have left: ${Array.from(room.playersLeftResultScreen).join(', ')}`);
+        return;
+      }
+
+      // Mark this player as ready for rematch
+      room.rematchReady.set(player.userId, true);
+      console.log(`[roomManager] Player ${player.userId} marked as ready. Ready players: ${room.rematchReady.size}/${room.players.length}`);
+
+      // Emit the updated rematch statuses to both players
+      const statuses = {
+        roomId: payload.roomId,
+        players: room.players.map(player => ({
+          userId: player.userId,
+          displayName: player.displayName,
+          readyForRematch: room.rematchReady.get(player.userId) ?? false,
+          left: false,
+        })),
+      };
+
+      console.log(`[roomManager] Emitting rematch_status_updated:`, statuses);
+      io.to(payload.roomId).emit('rematch_status_updated', statuses);
+
+      // If both players are ready, reset the room and start countdown again
+      if (room.rematchReady.size === room.players.length && room.players.length === 2) {
+        console.log(`[roomManager] Both players ready for rematch in room ${payload.roomId}. Resetting room state...`);
+        
+        // Clear any pending cleanup timeout
+        if (room.raceTimeout) {
+          clearTimeout(room.raceTimeout);
+          room.raceTimeout = undefined;
+        }
+
+        // Reset room state for new race
+        room.countdownStarted = false;
+        room.raceStarted = false;
+        room.finishers.clear();
+        room.rematchReady.clear();
+        room.playersLeftResultScreen.clear();
+        room.passageText = generatePassage(); // Generate new passage for next race
+        
+        // Reset players' ready status
+        for (const player of room.players) {
+          player.ready = false;
+        }
+
+        console.log(`[roomManager] Room ${payload.roomId} reset. New passage generated. Notifying players...`);
+
+        // Send game start data directly to both players
+        const startAt = Date.now() + PRE_RACE_COUNTDOWN_SECONDS * 1000 + REMATCH_NAVIGATION_DELAY_MS;
+        const gameStartData = {
+          roomId: payload.roomId,
+          passageText: room.passageText,
+          totalSeconds: RACE_DURATION_SECONDS,
+          countdownSeconds: PRE_RACE_COUNTDOWN_SECONDS,
+          startAt,
+        };
+
+        io.to(payload.roomId).emit('rematch_starting', gameStartData);
+
+        // Flip raceStarted exactly at startAt so progress_update/race_complete are accepted
+        // at the same moment clients consider the race started.
+        scheduleRaceStarted(room.roomId, startAt);
+      }
+    });
+
+    socket.on('left_result_screen', (payload: { roomId: string; userId: string }) => {
+      console.log(`[roomManager] left_result_screen event received for userId: ${payload.userId} in room ${payload.roomId}`);
+      const socketRoomId = socketRoomLookup.get(socket.id);
+      if (!socketRoomId || socketRoomId !== payload.roomId) {
+        return;
+      }
+
+      const room = rooms.get(payload.roomId);
+      if (!room) {
+        console.log(`[roomManager] Room not found for roomId: ${payload.roomId}`);
+        return;
+      }
+
+      const player = room.players.find(current => current.socketId === socket.id);
+      if (!player) {
+        return;
+      }
+
+      // Mark this player as having left the result screen
+      room.playersLeftResultScreen.add(player.userId);
+      
+      // Remove the rematch ready status for this player
+      room.rematchReady.delete(player.userId);
+
+      // Emit the updated rematch statuses
+      const statuses = {
+        roomId: payload.roomId,
+        players: room.players.map(current => ({
+          userId: current.userId,
+          displayName: current.displayName,
+          readyForRematch: room.rematchReady.get(current.userId) ?? false,
+          left: current.userId === player.userId,
+        })),
+      };
+
+      console.log(`[roomManager] Emitting opponent_left_result_screen to room ${payload.roomId}`);
+      io.to(payload.roomId).emit('rematch_status_updated', statuses);
+      
+      // Notify the other player that opponent left
+      socket.to(payload.roomId).emit('opponent_left_result_screen', {
+        roomId: payload.roomId,
+        userId: player.userId,
+        message: 'Your opponent left the result screen.',
+      });
+
+      // Clear any pending cleanup timeout since a player left
+      if (room.raceTimeout) {
+        clearTimeout(room.raceTimeout);
+        room.raceTimeout = undefined;
+      }
+
+      // Schedule cleanup after 30 seconds when a player leaves
+      room.raceTimeout = setTimeout(() => {
+        console.log(`[roomManager] Cleaning up room ${payload.roomId} after player left result screen`);
+        cleanupRoom(payload.roomId);
+      }, 30 * 1000);
     });
 
     socket.on('disconnect', () => {

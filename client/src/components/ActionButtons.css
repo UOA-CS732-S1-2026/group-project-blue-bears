@@ -58,6 +58,29 @@
   transform: translateY(-2px);
 }
 
+.action-btn--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  color: rgba(76, 175, 80, 0.8);
+  animation: pulse-ready-btn 1.5s ease-in-out infinite;
+}
+
+.action-btn--disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+@keyframes pulse-ready-btn {
+  0%, 100% { 
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.5);
+  }
+  50% { 
+    box-shadow: 0 0 12px 4px rgba(76, 175, 80, 0.2);
+  }
+}
+
 .action-btn__label {
   position: relative;
   z-index: 1;

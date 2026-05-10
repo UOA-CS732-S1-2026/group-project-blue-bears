@@ -43,6 +43,7 @@ function RegisterPage() {
               placeholder="Enter your first name"
               value={firstName}
               onChange={e => setFirstName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleRegister()}
               autoFocus
             />
             <AuthInput
@@ -50,6 +51,7 @@ function RegisterPage() {
               placeholder="Enter your last name"
               value={lastName}
               onChange={e => setLastName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleRegister()}
             />
           </div>
 
@@ -58,6 +60,7 @@ function RegisterPage() {
             placeholder="Enter your username"
             value={username}
             onChange={e => setUsername(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleRegister()}
           />
 
           <AuthInput
@@ -66,14 +69,17 @@ function RegisterPage() {
             placeholder="Enter your email"
             value={email}
             onChange={e => setEmail(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleRegister()}
           />
 
           <AuthInput
             label="Password"
             type="password"
+            showToggle
             placeholder="Enter your password"
             value={password}
             onChange={e => setPassword(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleRegister()}
           />
 
           <button className="auth-btn" onClick={handleRegister} disabled={loading}>

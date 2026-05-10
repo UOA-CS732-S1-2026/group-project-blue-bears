@@ -72,6 +72,7 @@
   color: var(--text-primary);
   outline: none;
   transition: border-color 0.2s, background 0.2s;
+  font-variant-ligatures: none;
 }
 
 .auth-input::placeholder {
@@ -81,30 +82,6 @@
 .auth-input:focus {
   border-color: rgba(255, 255, 255, 0.3);
   background: #222638;
-}
-
-/* Remember me + forgot password row */
-.auth-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.auth-remember {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--text-muted);
-  cursor: pointer;
-  user-select: none;
-}
-
-.auth-remember input[type='checkbox'] {
-  width: 15px;
-  height: 15px;
-  accent-color: var(--accent-red);
-  cursor: pointer;
 }
 
 /* Links */
@@ -142,6 +119,34 @@
 
 .auth-btn:active {
   transform: scale(0.98);
+}
+
+/* Password toggle */
+.auth-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-input-wrapper .auth-input {
+  padding-right: 44px;
+}
+
+.auth-password-toggle {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+
+.auth-password-toggle:hover {
+  color: var(--text-primary);
 }
 
 /* Switch Line */

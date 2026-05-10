@@ -12,7 +12,6 @@ function LoginPage() {
 
   const [emailOrUsername, setEmailOrUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -25,6 +24,7 @@ function LoginPage() {
       localStorage.setItem('token', data.token)
       localStorage.setItem('userId', data.userId)
       localStorage.setItem('email', data.email)
+      localStorage.setItem('username', data.username)
       navigate('/')
     } catch (err: any) {
       setError(err.message)
@@ -41,35 +41,30 @@ function LoginPage() {
           <h1 className="auth-title">Welcome Back</h1>
           <p className="auth-subtitle">Log in to your account to continue</p>
 
-          <p style={{ color: 'var(--accent-red)', fontSize: '13px', minHeight: '18px' }}>{error}</p>
-          <p style={{ color: 'var(--accent-green)', fontSize: '13px', minHeight: '18px' }}>{successMessage}</p>
+          {(error || successMessage) && (
+            <p style={{ color: error ? 'var(--accent-red)' : 'var(--accent-green)', fontSize: '13px', margin: 0 }}>
+              {error || successMessage}
+            </p>
+          )}
 
           <AuthInput
             label="Username or email"
             placeholder="Enter your username or email"
             value={emailOrUsername}
             onChange={e => setEmailOrUsername(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleLogin()}
             autoFocus
           />
 
           <AuthInput
             label="Password"
             type="password"
+            showToggle
             placeholder="Enter your password"
             value={password}
             onChange={e => setPassword(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleLogin()}
           />
-
-          <div className="auth-row">
-            <label className="auth-remember">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={e => setRememberMe(e.target.checked)}
-              />
-              <span>Remember Me</span>
-            </label>
-          </div>
 
           <button className="auth-btn" onClick={handleLogin} disabled={loading}>
             {loading ? 'Logging in...' : 'Login'}
