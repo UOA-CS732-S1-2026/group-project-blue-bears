@@ -54,7 +54,7 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export { formatTime };
+export { formatTime, calcStats };
 
 export function useGameLogic({
   passage,
