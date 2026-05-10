@@ -4,6 +4,20 @@ import useSocket from "../hooks/useSocket";
 import type { GameStats } from "../hooks/useGameLogic";
 import { useEffect, useState } from "react";
 
+interface RematchStartingPayload {
+  roomId: string;
+  passageText: string;
+  totalSeconds: number;
+  countdownSeconds: number;
+  startAt: number;
+}
+
+interface OpponentLeftResultScreenPayload {
+  roomId: string;
+  userId: string;
+  message?: string;
+}
+
 interface ResultState {
   roomId?: string;
   userId?: string;
@@ -28,20 +42,9 @@ function ResultRoute() {
   const state = location.state as ResultState | null;
   const [playerStatuses, setPlayerStatuses] = useState<PlayerStatus[]>([]);
 
-  // Fallback if someone navigates directly to /result without game data
-  if (!state) {
-    return (
-      <div style={{ color: "#fff", textAlign: "center", marginTop: "20vh", fontFamily: "monospace" }}>
-        No game data found.{" "}
-        <button onClick={() => navigate("/")} style={{ color: "#f5a623", background: "none", border: "none", cursor: "pointer", fontFamily: "monospace" }}>
-          Go back
-        </button>
-      </div>
-    );
-  }
-
   // Initialize player statuses when result page loads
   useEffect(() => {
+    if (!state) return;
     if (!state.roomId || !state.userId) return;
 
     // Initialize with both players' statuses
@@ -64,17 +67,16 @@ function ResultRoute() {
 
   // Set up socket event listeners for rematch status
   useEffect(() => {
+    if (!state) return;
     if (!state.roomId) return;
 
     const handleRematchStatusUpdated = (payload: { roomId: string; players: PlayerStatus[] }) => {
-      console.log("[ResultRoute] rematch_status_updated:", payload);
       if (payload.roomId === state.roomId) {
         setPlayerStatuses(payload.players);
       }
     };
 
-    const handleRematchStarting = (gameStartData: any) => {
-      console.log("[ResultRoute] rematch_starting - navigating directly to game", gameStartData);
+    const handleRematchStarting = (gameStartData: RematchStartingPayload) => {
       // Navigate directly to game page with countdown and passage info
       navigate("/game", {
         state: {
@@ -89,8 +91,7 @@ function ResultRoute() {
       });
     };
 
-    const handleOpponentLeftResultScreen = (payload: any) => {
-      console.log("[ResultRoute] opponent_left_result_screen:", payload);
+    const handleOpponentLeftResultScreen = (_payload: OpponentLeftResultScreenPayload) => {
       // Update player statuses to show opponent left
       setPlayerStatuses(prev =>
         prev.map(p => ({
@@ -112,29 +113,22 @@ function ResultRoute() {
   }, [state.roomId, state.userId, state.username, navigate, socket, state]);
 
   const handlePlayAgain = () => {
-    console.log("[ResultRoute] handlePlayAgain called");
-    console.log("[ResultRoute] socket.connected:", socket.connected);
-    console.log("[ResultRoute] roomId:", state.roomId, "userId:", state.userId);
-    
+    if (!state) return;
     if (!state.roomId || !state.userId) {
-      console.error("[ResultRoute] Missing roomId or userId");
       return;
     }
 
     if (!socket.connected) {
-      console.error("[ResultRoute] Socket not connected");
       return;
     }
 
     // Check if opponent has left
     const opponentStatus = playerStatuses.find(p => p.userId !== state.userId);
     if (opponentStatus?.left) {
-      console.warn("[ResultRoute] Cannot play again - opponent has left");
       return;
     }
 
     // Emit ready_for_rematch event
-    console.log("[ResultRoute] Emitting ready_for_rematch");
     socket.emit("ready_for_rematch", {
       roomId: state.roomId,
       userId: state.userId,
@@ -142,10 +136,12 @@ function ResultRoute() {
   };
 
   const handleMainMenu = () => {
-    console.log("[ResultRoute] handleMainMenu called");
+    if (!state) {
+      navigate("/");
+      return;
+    }
     if (state.roomId && state.userId) {
       // Notify server that player left result screen
-      console.log("[ResultRoute] Emitting left_result_screen");
       socket.emit("left_result_screen", {
         roomId: state.roomId,
         userId: state.userId,
@@ -153,6 +149,18 @@ function ResultRoute() {
     }
     navigate("/");
   };
+
+  // Fallback if someone navigates directly to /result without game data
+  if (!state) {
+    return (
+      <div style={{ color: "#fff", textAlign: "center", marginTop: "20vh", fontFamily: "monospace" }}>
+        No game data found.{" "}
+        <button onClick={() => navigate("/")} style={{ color: "#f5a623", background: "none", border: "none", cursor: "pointer", fontFamily: "monospace" }}>
+          Go back
+        </button>
+      </div>
+    );
+  }
 
   return (
     <ResultPage
