@@ -1,4 +1,4 @@
-const { Match } = require('../src/models/Match');
+const { Match } = require('../dist/models/Match');
 
 // Creates a new Match document. Caller is responsible for winnerId and player snapshots.
 const createMatchResult = (matchData) => Match.create(matchData);
