@@ -41,17 +41,20 @@ function ResultRoute() {
   const { socket } = useSocket();
   const state = location.state as ResultState | null;
   const [playerStatuses, setPlayerStatuses] = useState<PlayerStatus[]>([]);
+  const roomId = state?.roomId;
+  const userId = state?.userId;
+  const username = state?.username;
 
   // Initialize player statuses when result page loads
   useEffect(() => {
     if (!state) return;
-    if (!state.roomId || !state.userId) return;
+    if (!roomId || !userId) return;
 
     // Initialize with both players' statuses
     const initialStatuses: PlayerStatus[] = [
       {
-        userId: state.userId,
-        displayName: state.username || "Player 1",
+        userId,
+        displayName: username || "Player 1",
         readyForRematch: false,
         left: false,
       },
@@ -63,15 +66,15 @@ function ResultRoute() {
       },
     ];
     setPlayerStatuses(initialStatuses);
-  }, [state.roomId, state.userId, state.username]);
+  }, [roomId, userId, username, state]);
 
   // Set up socket event listeners for rematch status
   useEffect(() => {
     if (!state) return;
-    if (!state.roomId) return;
+    if (!roomId) return;
 
     const handleRematchStatusUpdated = (payload: { roomId: string; players: PlayerStatus[] }) => {
-      if (payload.roomId === state.roomId) {
+      if (payload.roomId === roomId) {
         setPlayerStatuses(payload.players);
       }
     };
@@ -81,8 +84,8 @@ function ResultRoute() {
       navigate("/game", {
         state: {
           roomId: gameStartData.roomId,
-          userId: state.userId,
-          username: state.username,
+          userId,
+          username,
           passageText: gameStartData.passageText,
           totalSeconds: gameStartData.totalSeconds,
           countdownSeconds: gameStartData.countdownSeconds,
@@ -96,7 +99,7 @@ function ResultRoute() {
       setPlayerStatuses(prev =>
         prev.map(p => ({
           ...p,
-          left: p.userId !== state.userId ? true : p.left,
+          left: p.userId !== userId ? true : p.left,
         }))
       );
     };
@@ -110,11 +113,11 @@ function ResultRoute() {
       socket.off("rematch_starting", handleRematchStarting);
       socket.off("opponent_left_result_screen", handleOpponentLeftResultScreen);
     };
-  }, [state.roomId, state.userId, state.username, navigate, socket, state]);
+  }, [roomId, userId, username, navigate, socket, state]);
 
   const handlePlayAgain = () => {
     if (!state) return;
-    if (!state.roomId || !state.userId) {
+    if (!roomId || !userId) {
       return;
     }
 
@@ -123,15 +126,15 @@ function ResultRoute() {
     }
 
     // Check if opponent has left
-    const opponentStatus = playerStatuses.find(p => p.userId !== state.userId);
+    const opponentStatus = playerStatuses.find(p => p.userId !== userId);
     if (opponentStatus?.left) {
       return;
     }
 
     // Emit ready_for_rematch event
     socket.emit("ready_for_rematch", {
-      roomId: state.roomId,
-      userId: state.userId,
+      roomId,
+      userId,
     });
   };
 
@@ -140,11 +143,11 @@ function ResultRoute() {
       navigate("/");
       return;
     }
-    if (state.roomId && state.userId) {
+    if (roomId && userId) {
       // Notify server that player left result screen
       socket.emit("left_result_screen", {
-        roomId: state.roomId,
-        userId: state.userId,
+        roomId,
+        userId,
       });
     }
     navigate("/");
@@ -171,7 +174,7 @@ function ResultRoute() {
       onPlayAgain={handlePlayAgain}
       onMainMenu={handleMainMenu}
       playerStatuses={playerStatuses}
-      currentUserId={state.userId || ""}
+      currentUserId={userId || ""}
     />
   );
 }
