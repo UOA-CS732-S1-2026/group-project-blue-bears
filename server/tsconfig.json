@@ -8,5 +8,6 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "types": ["node"]
-  }
+  },
+  "exclude": ["node_modules", "src/__tests__"]
 }
