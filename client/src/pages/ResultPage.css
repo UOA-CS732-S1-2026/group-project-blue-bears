@@ -37,3 +37,104 @@
   flex-direction: column;
   gap: 16px;
 }
+
+/* Player Status Display */
+.result-screen__player-status {
+  width: 100%;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(245, 166, 35, 0.3);
+  border-radius: 8px;
+  margin: 8px 0;
+}
+
+.player-status-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 12px;
+}
+
+.player-status-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.player-status-label {
+  font-family: "Share Tech Mono", monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.player-status-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-family: "Orbitron", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 100px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.status-badge--ready {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+  border: 1px solid rgba(76, 175, 80, 0.5);
+  animation: pulse-ready 1.5s ease-in-out infinite;
+}
+
+.status-badge--waiting {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+  border: 1px solid rgba(255, 193, 7, 0.5);
+  animation: pulse-waiting 1s ease-in-out infinite;
+}
+
+.status-badge--left {
+  background: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+  border: 1px solid rgba(244, 67, 54, 0.5);
+}
+
+.player-status-divider {
+  font-family: "Share Tech Mono", monospace;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(245, 166, 35, 0.5);
+  flex-shrink: 0;
+}
+
+@keyframes pulse-ready {
+  0%, 100% { 
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
+  }
+  50% { 
+    box-shadow: 0 0 0 8px rgba(76, 175, 80, 0);
+  }
+}
+
+@keyframes pulse-waiting {
+  0%, 100% { 
+    opacity: 1;
+  }
+  50% { 
+    opacity: 0.6;
+  }
+}
