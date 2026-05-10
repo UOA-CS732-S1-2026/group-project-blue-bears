@@ -93,6 +93,7 @@ const socketRoomLookup = new Map<string, string>();
 
 const ROOM_CODE_LENGTH = 6;
 const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const ROOM_CODE_PATTERN = new RegExp(`^[${ROOM_CODE_ALPHABET}]{${ROOM_CODE_LENGTH}}$`);
 
 const RACE_DURATION_SECONDS = 60;
 const PRE_RACE_COUNTDOWN_SECONDS = 3;
@@ -111,6 +112,12 @@ const buildRoomPlayerPayload = (player: RoomPlayer) => ({
   avatarKind: player.avatarKind,
   ready: player.ready,
 });
+
+const buildPlayersSnapshot = (room: RoomState) => room.players.map(buildRoomPlayerPayload);
+
+const normalizeRoomId = (roomId: string): string => roomId.trim().toUpperCase();
+
+const isValidRoomCodeFormat = (roomId: string): boolean => ROOM_CODE_PATTERN.test(roomId);
 
 const normalizePlayerMetadata = (
   payload: { displayName?: string; avatarKind?: 'guest' | 'initials'; username?: string },
@@ -188,7 +195,7 @@ const emitGameStart = (io: Server, room: RoomState): void => {
 const emitRoomState = (io: Server, room: RoomState): void => {
   io.to(room.roomId).emit('room_state', {
     roomId: room.roomId,
-    players: room.players.map(buildRoomPlayerPayload),
+    players: buildPlayersSnapshot(room),
   });
 };
 
@@ -310,24 +317,44 @@ export const registerSocketHandlers = (io: Server): void => {
     socket.on('join_room', (payload: JoinRoomPayload) => {
       const { roomId, userId } = payload;
       const { displayName, avatarKind } = normalizePlayerMetadata(payload);
+      const normalizedRoomId = normalizeRoomId(roomId || '');
 
-      if (!roomId || !userId) {
+      if (!normalizedRoomId || !userId) {
         socket.emit('error', { message: 'Invalid room join payload' });
         return;
       }
 
-      const room = getOrCreateRoom(roomId);
+      if (!isValidRoomCodeFormat(normalizedRoomId)) {
+        socket.emit('error', {
+          reason: 'INVALID_CODE',
+          message: 'Lobby code does not exist.',
+          roomId: normalizedRoomId,
+        });
+        return;
+      }
 
-      if (room.players.length >= 2) {
-        // Inform the requester that the room is full and provide a snapshot
-        socket.emit('room_full', {
-          roomId,
-          players: room.players.map(buildRoomPlayerPayload),
+      const room = rooms.get(normalizedRoomId);
+      if (!room) {
+        socket.emit('error', {
+          reason: 'INVALID_CODE',
+          message: 'Lobby code does not exist.',
+          roomId: normalizedRoomId,
         });
         return;
       }
 
       const existingPlayer = room.players.find(player => player.userId === userId);
+      if (!existingPlayer && room.players.length >= 2) {
+        socket.emit('room_full', {
+          reason: 'ROOM_FULL',
+          message: 'This lobby is full.',
+          retryable: false,
+          roomId: normalizedRoomId,
+          players: buildPlayersSnapshot(room),
+        });
+        return;
+      }
+
       if (existingPlayer) {
         existingPlayer.socketId = socket.id;
         existingPlayer.displayName = displayName;
@@ -343,28 +370,53 @@ export const registerSocketHandlers = (io: Server): void => {
         });
       }
 
-      socket.join(roomId);
-      socketRoomLookup.set(socket.id, roomId);
+      socket.join(normalizedRoomId);
+      socketRoomLookup.set(socket.id, normalizedRoomId);
 
       emitRoomState(io, room);
 
       emitRoomState(io, room);
 
       if (room.players.length === 2) {
-        io.to(roomId).emit('room_ready', {
-          roomId,
-          players: room.players.map(buildRoomPlayerPayload),
+        io.to(normalizedRoomId).emit('room_ready', {
+          roomId: normalizedRoomId,
+          players: buildPlayersSnapshot(room),
         });
       }
     });
 
     // Allow external sockets to probe room occupancy without joining
     socket.on('probe_room', (payload: { roomId: string }) => {
-      const { roomId } = payload;
-      const room = rooms.get(roomId);
+      const normalizedRoomId = normalizeRoomId(payload.roomId || '');
+
+      if (!normalizedRoomId || !isValidRoomCodeFormat(normalizedRoomId)) {
+        socket.emit('room_probe', {
+          exists: false,
+          reason: 'INVALID_CODE',
+          message: 'Lobby code does not exist.',
+          roomId: normalizedRoomId,
+          players: [],
+        });
+        return;
+      }
+
+      const room = rooms.get(normalizedRoomId);
+      if (!room) {
+        socket.emit('room_probe', {
+          exists: false,
+          reason: 'INVALID_CODE',
+          message: 'Lobby code does not exist.',
+          roomId: normalizedRoomId,
+          players: [],
+        });
+        return;
+      }
+
       socket.emit('room_probe', {
-        roomId,
-        players: room ? room.players.map(buildRoomPlayerPayload) : [],
+        exists: true,
+        roomId: normalizedRoomId,
+        players: buildPlayersSnapshot(room),
+        isFull: room.players.length >= 2,
       });
     });
 
