@@ -7,6 +7,8 @@ import './JoinLobbyPage.css'
 
 interface RoomProbePayload {
   roomId?: string
+  exists?: boolean
+  isFull?: boolean
   players: unknown[]
 }
 
@@ -64,6 +66,11 @@ function JoinLobbyCodePage() {
 
       if (payload.players.length === 0) {
         setMessage('No lobby found for that code.')
+        return
+      }
+
+      if (payload.isFull === true || payload.players.length >= 2) {
+        setMessage('Lobby is full. Please try another code.')
         return
       }
 
