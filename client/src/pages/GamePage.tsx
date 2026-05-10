@@ -1,9 +1,10 @@
 import React, { useRef, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import TypingDisplay from "../components/TypingDisplay";
-import { useGameLogic, formatTime } from "../hooks/useGameLogic";
+import { useGameLogic, formatTime, type GameStats } from "../hooks/useGameLogic";
 import useSocket from "../hooks/useSocket";
 import "./GamePage.css";
+import GameCanvas from "../components/GameCanvas";
 
 const TOTAL_SECONDS = 60;
 
@@ -17,9 +18,14 @@ interface GameLocationState {
   startAt?: number;
 }
 
-interface OpponentStats {
+export interface OpponentStats {
   wpm: number;
   accuracy: number;
+  progress?: number;
+}
+
+export interface PlayerStats extends GameStats {
+  progress: number;
 }
 
 interface OpponentProgressPayload {
@@ -56,6 +62,7 @@ const GamePage: React.FC = () => {
   const countdownSeed = locationState.countdownSeconds ?? 3;
   const [countdown, setCountdown] = React.useState<number | null>(null);
   const [didStartRace, setDidStartRace] = React.useState(false);
+  const [playerProgress, setPlayerProgress] = React.useState<number>(0);
 
   // Real-time opponent stats updated via socket
   const [opponentStats, setOpponentStats] = useState<OpponentStats>({ wpm: 0, accuracy: 100 });
@@ -111,6 +118,7 @@ const GamePage: React.FC = () => {
     const progress = racePassage.length > 0
       ? Math.round((userInput.length / racePassage.length) * 100)
       : 0;
+    setPlayerProgress(progress);
 
     socket.emit("progress_update", {
       roomId: locationState.roomId,
@@ -125,7 +133,7 @@ const GamePage: React.FC = () => {
   // Listen for real-time opponent progress (wpm + accuracy)
   useEffect(() => {
     const handleOpponentProgress = (payload: OpponentProgressPayload) => {
-      setOpponentStats({ wpm: payload.wpm, accuracy: payload.accuracy });
+      setOpponentStats({ wpm: payload.wpm, accuracy: payload.accuracy, progress: payload.progress });
     };
 
     // race_results carries final verified stats for both players
@@ -224,6 +232,14 @@ const GamePage: React.FC = () => {
 
   return (
     <div className="game-page" onClick={handlePageClick}>
+
+      <GameCanvas 
+          status={status}
+          playerStats={{...stats, progress: playerProgress}}
+          opponentStats={opponentStats}
+          raceMeta={{passage: racePassage}}
+      />
+
       <input
         ref={inputRef}
         value={userInput}
