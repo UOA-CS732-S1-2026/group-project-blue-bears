@@ -7,6 +7,7 @@ import "./GamePage.css";
 import GameCanvas from "../components/GameCanvas";
 
 const TOTAL_SECONDS = 60;
+const BLOCKED_GAME_SHORTCUT_KEYS = new Set(["c", "v", "z", "y"]);
 
 interface GameLocationState {
   roomId?: string;
@@ -205,6 +206,16 @@ const GamePage: React.FC = () => {
     handleInput(e.target.value);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!(e.ctrlKey || e.metaKey)) {
+      return;
+    }
+
+    if (BLOCKED_GAME_SHORTCUT_KEYS.has(e.key.toLowerCase())) {
+      e.preventDefault();
+    }
+  };
+
   const handlePageClick = () => {
     inputRef.current?.focus();
   };
@@ -223,6 +234,7 @@ const GamePage: React.FC = () => {
         ref={inputRef}
         value={userInput}
         onChange={handleChange}
+        onKeyDown={handleKeyDown}
         className="game-page__hidden-input"
         autoComplete="off"
         autoCorrect="off"
