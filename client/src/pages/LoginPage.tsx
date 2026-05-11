@@ -9,6 +9,8 @@ function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const successMessage = location.state?.message
+  const title = location.state?.title ?? 'Welcome Back'
+  const subtitle = location.state?.subtitle ?? 'Log in to your account to continue'
 
   const [emailOrUsername, setEmailOrUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -38,8 +40,8 @@ function LoginPage() {
       <AuthHeader back={() => navigate('/')}/>
       <main className="auth-main">
         <div className="auth-card">
-          <h1 className="auth-title">Welcome Back</h1>
-          <p className="auth-subtitle">Log in to your account to continue</p>
+          <h1 className="auth-title">{title}</h1>
+          <p className="auth-subtitle">{subtitle}</p>
 
           {(error || successMessage) && (
             <p style={{ color: error ? 'var(--accent-red)' : 'var(--accent-green)', fontSize: '13px', margin: 0 }}>

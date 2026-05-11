@@ -236,7 +236,7 @@ function LobbyPage() {
       }
 
       if (currentPlayer.ready && opponentPlayer?.ready) {
-        setStatusMessage('Both players are ready. Starting game...')
+        setStatusMessage('Waiting for game to load...')
         return
       }
 
@@ -393,8 +393,10 @@ function LobbyPage() {
                     {meReady ? 'Ready' : 'Ready'}
                   </button>
                 )}
-                {me && roomReady && (
-                  <p className="lobby-race-status">{opponent?.ready ? 'Waiting for game to load...' : 'Both players joined. Ready up.'}</p>
+                {me && roomReady && !(meReady && opponent?.ready) && (
+                  <p className="lobby-race-status">
+                    {opponent?.ready ? 'Opponent is ready. Press Ready to start.' : 'Both players must be ready to start.'}
+                  </p>
                 )}
               </section>
             </main>

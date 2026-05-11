@@ -23,7 +23,12 @@ function ProfilePage() {
 
   useEffect(() => {
     if (!token || !userId) {
-      navigate('/login')
+      navigate('/login', {
+        state: {
+          title: 'Please sign in',
+          subtitle: 'Log in to view your profile.',
+        },
+      })
       return
     }
 
