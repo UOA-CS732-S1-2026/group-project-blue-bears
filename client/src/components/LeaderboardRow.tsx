@@ -5,7 +5,6 @@ export interface Player {
   accuracy: number
   wins: number
   totalMatch: number
-  avatarUrl?: string
   isMe?: boolean
 }
 
@@ -23,12 +22,6 @@ function LeaderboardRow({ player, rank, activeFilter }: { player: Player; rank: 
     <div className={`lb-row ${player.isMe ? 'lb-row--me' : ''}`}>
       <div className="lb-col lb-col--player">
         <span className={getRankStyle(rank)}>{rank}</span>
-        <div className="lb-avatar">
-          {player.avatarUrl
-            ? <img src={player.avatarUrl} alt={player.name} />
-            : <span className="lb-avatar-placeholder" />
-          }
-        </div>
         <div className="lb-player-info">
           <span className="lb-player-name">{player.name}</span>
         </div>

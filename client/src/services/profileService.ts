@@ -11,7 +11,7 @@ export interface ProfileData {
 }
 
 export interface PlayerSnapshot {
-    userId: string;
+    userId: string | null;
     username: string;
     wpm: number;
     accuracy: number;

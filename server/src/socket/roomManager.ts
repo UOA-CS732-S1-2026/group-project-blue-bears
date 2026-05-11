@@ -240,22 +240,21 @@ const emitRaceResults = async (io: Server, room: RoomState): Promise<void> => {
   });
 
   const [p1, p2] = results;
-  if (
-    p1 && p2 &&
-    mongoose.Types.ObjectId.isValid(p1.userId) &&
-    mongoose.Types.ObjectId.isValid(p2.userId)
-  ) {
+  const p1Registered = p1 && mongoose.Types.ObjectId.isValid(p1.userId);
+  const p2Registered = p2 && mongoose.Types.ObjectId.isValid(p2.userId);
+
+  if (p1 && p2 && (p1Registered || p2Registered)) {
     const winnerId =
-      p1.wpm > p2.wpm ? p1.userId :
-      p2.wpm > p1.wpm ? p2.userId :
+      p1.wpm > p2.wpm ? (p1Registered ? p1.userId : undefined) :
+      p2.wpm > p1.wpm ? (p2Registered ? p2.userId : undefined) :
       undefined;
 
     try {
       await createMatchResult({
         passage: room.passageText,
         winnerId,
-        player1: { userId: p1.userId, username: p1.username, wpm: p1.wpm, accuracy: p1.accuracy },
-        player2: { userId: p2.userId, username: p2.username, wpm: p2.wpm, accuracy: p2.accuracy },
+        player1: { userId: p1Registered ? p1.userId : null, username: p1.username, wpm: p1.wpm, accuracy: p1.accuracy },
+        player2: { userId: p2Registered ? p2.userId : null, username: p2.username, wpm: p2.wpm, accuracy: p2.accuracy },
       });
     } catch (err) {
       console.error('Failed to save match result:', err);
