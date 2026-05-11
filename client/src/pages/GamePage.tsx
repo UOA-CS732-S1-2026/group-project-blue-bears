@@ -70,7 +70,7 @@ const GamePage: React.FC = () => {
   const { userInput, status, timeLeft, stats, start, handleInput } = useGameLogic({
     passage: racePassage,
     totalSeconds: raceDuration,
-    onGameEnd: (finalStats, elapsed) => {
+    onGameEnd: (finalStats, elapsed, finishedPassage) => {
       elapsedRef.current = elapsed;
       if (locationState.roomId && locationState.userId) {
         socket.emit("race_complete", {
@@ -78,6 +78,7 @@ const GamePage: React.FC = () => {
           userId: locationState.userId,
           wpm: finalStats.wpm,
           accuracy: finalStats.accuracy,
+          finishedPassage,
         });
         setWaitingForResults(true);
       }

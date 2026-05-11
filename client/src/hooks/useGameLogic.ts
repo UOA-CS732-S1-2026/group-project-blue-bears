@@ -142,6 +142,7 @@ export function useGameLogic({
     (value: string) => {
       if (status !== "playing") return;
       if (value.length > passage.length) return;
+      if (!passage.startsWith(value)) return;
 
       setUserInput(value);
 

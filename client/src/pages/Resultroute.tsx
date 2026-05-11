@@ -104,14 +104,25 @@ function ResultRoute() {
       );
     };
 
+    const handleOpponentDisconnected = (_payload: { roomId: string; message: string }) => {
+      setPlayerStatuses(prev =>
+        prev.map(p => ({
+          ...p,
+          left: p.userId !== userId ? true : p.left,
+        }))
+      );
+    };
+
     socket.on("rematch_status_updated", handleRematchStatusUpdated);
     socket.on("rematch_starting", handleRematchStarting);
     socket.on("opponent_left_result_screen", handleOpponentLeftResultScreen);
+    socket.on("opponent_disconnected", handleOpponentDisconnected);
 
     return () => {
       socket.off("rematch_status_updated", handleRematchStatusUpdated);
       socket.off("rematch_starting", handleRematchStarting);
       socket.off("opponent_left_result_screen", handleOpponentLeftResultScreen);
+      socket.off("opponent_disconnected", handleOpponentDisconnected);
     };
   }, [roomId, userId, username, navigate, socket, state]);
 
@@ -150,6 +161,8 @@ function ResultRoute() {
         userId,
       });
     }
+    sessionStorage.removeItem("activeLobbyCode");
+    sessionStorage.removeItem("activeLobbyUserId");
     navigate("/");
   };
 

@@ -60,6 +60,7 @@ interface RaceCompletePayload {
   userId: string;
   wpm: number;
   accuracy: number;
+  finishedPassage: boolean;
 }
 
 interface RoomPlayer {
@@ -234,6 +235,7 @@ const cleanupRoom = (roomId: string): void => {
 };
 
 const emitRaceResults = async (io: Server, room: RoomState): Promise<void> => {
+  room.raceStarted = false;
   const results = room.players.map(player => {
     const finisher = room.finishers.get(player.userId);
     return finisher ?? buildDefaultResult(player);
@@ -313,8 +315,17 @@ export const registerSocketHandlers = (io: Server): void => {
 
       const existingRoomId = socketRoomLookup.get(socket.id);
       if (existingRoomId) {
-        socket.emit('room_created', { roomId: existingRoomId });
-        return;
+        const oldRoom = rooms.get(existingRoomId);
+        if (oldRoom) {
+          oldRoom.players = oldRoom.players.filter(p => p.socketId !== socket.id);
+          if (oldRoom.players.length === 0) {
+            cleanupRoom(existingRoomId);
+          } else {
+            emitRoomState(io, oldRoom);
+          }
+        }
+        socket.leave(existingRoomId);
+        socketRoomLookup.delete(socket.id);
       }
 
       const roomId = generateRoomCode();
@@ -522,14 +533,18 @@ export const registerSocketHandlers = (io: Server): void => {
         finished: true,
       });
 
-      if (room.finishers.size === 1) {
-        socket.to(payload.roomId).emit('opponent_finished', {
-          roomId: payload.roomId,
-          userId: payload.userId,
-          wpm: payload.wpm,
-          accuracy: payload.accuracy,
-        });
-
+      if (room.finishers.size === 1 && payload.finishedPassage) {
+        // First player finished the passage — end immediately
+        void emitRaceResults(io, room);
+      } else if (room.finishers.size >= 2) {
+        // Both players have submitted — end now, cancelling any pending timeout
+        if (room.raceTimeout) {
+          clearTimeout(room.raceTimeout);
+          room.raceTimeout = undefined;
+        }
+        void emitRaceResults(io, room);
+      } else {
+        // First player timed out — wait for opponent's timer race_complete (should arrive very soon)
         if (!room.raceTimeout) {
           room.raceTimeout = setTimeout(() => {
             const latestRoom = rooms.get(payload.roomId);
@@ -540,10 +555,6 @@ export const registerSocketHandlers = (io: Server): void => {
             void emitRaceResults(io, latestRoom);
           }, 30000);
         }
-      }
-
-      if (room.finishers.size >= 2) {
-        void emitRaceResults(io, room);
       }
     });
 
