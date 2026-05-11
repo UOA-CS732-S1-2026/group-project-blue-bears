@@ -205,6 +205,12 @@ const GamePage: React.FC = () => {
     handleInput(e.target.value);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+    }
+  };
+
   const handlePageClick = () => {
     inputRef.current?.focus();
   };
@@ -223,6 +229,7 @@ const GamePage: React.FC = () => {
         ref={inputRef}
         value={userInput}
         onChange={handleChange}
+        onKeyDown={handleKeyDown}
         className="game-page__hidden-input"
         autoComplete="off"
         autoCorrect="off"
