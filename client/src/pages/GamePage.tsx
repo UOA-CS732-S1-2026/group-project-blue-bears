@@ -62,17 +62,16 @@ const GamePage: React.FC = () => {
   const countdownSeed = locationState.countdownSeconds ?? 3;
   const [countdown, setCountdown] = React.useState<number | null>(null);
   const [didStartRace, setDidStartRace] = React.useState(false);
+  const [waitingForResults, setWaitingForResults] = useState(false);
   const [playerProgress, setPlayerProgress] = React.useState<number>(0);
-
-  // Real-time opponent stats updated via socket
   const [opponentStats, setOpponentStats] = useState<OpponentStats>({ wpm: 0, accuracy: 100 });
-  const finalOpponentStatsRef = useRef<OpponentStats | null>(null);
+  const elapsedRef = useRef(0);
 
   const { userInput, status, timeLeft, stats, start, handleInput } = useGameLogic({
     passage: racePassage,
     totalSeconds: raceDuration,
     onGameEnd: (finalStats, elapsed) => {
-      // Emit race_complete so the server records results and triggers race_results for both players
+      elapsedRef.current = elapsed;
       if (locationState.roomId && locationState.userId) {
         socket.emit("race_complete", {
           roomId: locationState.roomId,
@@ -80,27 +79,7 @@ const GamePage: React.FC = () => {
           wpm: finalStats.wpm,
           accuracy: finalStats.accuracy,
         });
-      }
-
-      // If we already have opponent's final stats, navigate immediately
-      // Otherwise wait for race_results from the server
-      if (finalOpponentStatsRef.current) {
-        const opponent = finalOpponentStatsRef.current;
-        let outcome: "victory" | "defeat" | "draw" = "draw";
-        if (finalStats.wpm > opponent.wpm) outcome = "victory";
-        else if (finalStats.wpm < opponent.wpm) outcome = "defeat";
-
-        navigate("/result", {
-          state: {
-            roomId: locationState.roomId,
-            userId: locationState.userId,
-            username: locationState.username,
-            outcome,
-            playerStats: finalStats,
-            opponentStats: { ...opponent, inaccuracies: 0 },
-            duration: formatTime(elapsed),
-          },
-        });
+        setWaitingForResults(true);
       }
     },
   });
@@ -110,6 +89,12 @@ const GamePage: React.FC = () => {
   useEffect(() => {
     statsRef.current = stats;
   }, [stats]);
+
+  // Track timeLeft in a ref so handleRaceResults can read it without being a dep
+  const timeLeftRef = useRef(timeLeft);
+  useEffect(() => {
+    timeLeftRef.current = timeLeft;
+  }, [timeLeft]);
 
   // Emit progress_update with live wpm/accuracy every time stats change while playing
   useEffect(() => {
@@ -130,49 +115,43 @@ const GamePage: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stats.wpm, stats.accuracy, userInput.length]);
 
-  // Listen for real-time opponent progress (wpm + accuracy)
+  // Listen for real-time opponent progress and final race results
   useEffect(() => {
     const handleOpponentProgress = (payload: OpponentProgressPayload) => {
       setOpponentStats({ wpm: payload.wpm, accuracy: payload.accuracy, progress: payload.progress });
     };
 
-    // race_results carries final verified stats for both players
     const handleRaceResults = (payload: RaceResultsPayload) => {
       const myId = locationState.userId;
       const myResult = payload.results.find(r => r.userId === myId);
       const opponentResult = payload.results.find(r => r.userId !== myId);
 
-      if (!opponentResult) return;
+      const finalStats = myResult ?? statsRef.current;
+      const finalOpponent = opponentResult ?? { wpm: 0, accuracy: 0 };
 
-      finalOpponentStatsRef.current = { wpm: opponentResult.wpm, accuracy: opponentResult.accuracy };
+      let outcome: "victory" | "defeat" | "draw" = "draw";
+      if (finalStats.wpm > finalOpponent.wpm) outcome = "victory";
+      else if (finalStats.wpm < finalOpponent.wpm) outcome = "defeat";
 
-      // Only navigate if the game has already ended on our side
-      if (status === "finished" || statsRef.current) {
-        const finalStats = myResult ?? statsRef.current;
-        let outcome: "victory" | "defeat" | "draw" = "draw";
-        if (finalStats.wpm > opponentResult.wpm) outcome = "victory";
-        else if (finalStats.wpm < opponentResult.wpm) outcome = "defeat";
-
-        navigate("/result", {
-          state: {
-            roomId: locationState.roomId,
-            userId: locationState.userId,
-            username: locationState.username,
-            outcome,
-            playerStats: {
-              wpm: finalStats.wpm,
-              accuracy: finalStats.accuracy,
-              inaccuracies: (finalStats as typeof stats).inaccuracies ?? 0,
-            },
-            opponentStats: {
-              wpm: opponentResult.wpm,
-              accuracy: opponentResult.accuracy,
-              inaccuracies: 0,
-            },
-            duration: formatTime(raceDuration - timeLeft),
+      navigate("/result", {
+        state: {
+          roomId: payload.roomId,
+          userId: myId,
+          username: locationState.username,
+          outcome,
+          playerStats: {
+            wpm: finalStats.wpm,
+            accuracy: finalStats.accuracy,
+            inaccuracies: (finalStats as GameStats).inaccuracies ?? 0,
           },
-        });
-      }
+          opponentStats: {
+            wpm: finalOpponent.wpm,
+            accuracy: finalOpponent.accuracy,
+            inaccuracies: 0,
+          },
+          duration: formatTime(elapsedRef.current > 0 ? elapsedRef.current : raceDuration - timeLeftRef.current),
+        },
+      });
     };
 
     socket.on("opponent_progress", handleOpponentProgress);
@@ -182,7 +161,7 @@ const GamePage: React.FC = () => {
       socket.off("opponent_progress", handleOpponentProgress);
       socket.off("race_results", handleRaceResults);
     };
-  }, [locationState.roomId, locationState.userId, locationState.username, navigate, socket, status, raceDuration, timeLeft]);
+  }, [locationState, navigate, socket, raceDuration]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -233,11 +212,11 @@ const GamePage: React.FC = () => {
   return (
     <div className="game-page" onClick={handlePageClick}>
 
-      <GameCanvas 
-          status={status}
-          playerStats={{...stats, progress: playerProgress}}
-          opponentStats={opponentStats}
-          raceMeta={{passage: racePassage}}
+      <GameCanvas
+        status={status}
+        playerStats={{...stats, progress: playerProgress}}
+        opponentStats={opponentStats}
+        raceMeta={{passage: racePassage}}
       />
 
       <input
@@ -274,6 +253,8 @@ const GamePage: React.FC = () => {
         <div className="game-page__timer">
           {countdown !== null ? (
             <span className="game-page__timer-value">{countdown}</span>
+          ) : waitingForResults ? (
+            <span className="game-page__timer-idle">Waiting for results...</span>
           ) : status === "idle" ? (
             <span className="game-page__timer-idle">Preparing race...</span>
           ) : (

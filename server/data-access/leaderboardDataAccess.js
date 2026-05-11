@@ -10,16 +10,19 @@ const getLeaderboard = async (limit = 10) => {
         {
             $project: {
                 createdAt: 1,
+                winnerId: 1,
                 players: [
                     {
                         userId: '$player1.userId',
                         username: '$player1.username',
                         wpm: '$player1.wpm',
+                        accuracy: '$player1.accuracy',
                     },
                     {
                         userId: '$player2.userId',
                         username: '$player2.username',
                         wpm: '$player2.wpm',
+                        accuracy: '$player2.accuracy',
                     },
                 ],
             },
@@ -32,7 +35,14 @@ const getLeaderboard = async (limit = 10) => {
                 userId: { $first: '$players.userId' },
                 username: { $last: '$players.username' },
                 bestWpm: { $max: '$players.wpm' },
+                avgWpm: { $avg: '$players.wpm' },
+                avgAccuracy: { $avg: '$players.accuracy' },
                 totalMatches: { $sum: 1 },
+                totalWins: {
+                    $sum: {
+                        $cond: [{ $eq: ['$winnerId', '$players.userId'] }, 1, 0],
+                    },
+                },
             },
         },
         { $sort: { bestWpm: -1, totalMatches: -1 } },
@@ -43,7 +53,10 @@ const getLeaderboard = async (limit = 10) => {
                 userId: 1,
                 username: 1,
                 bestWpm: 1,
+                avgWpm: { $round: ['$avgWpm', 0] },
+                avgAccuracy: { $round: ['$avgAccuracy', 0] },
                 totalMatches: 1,
+                totalWins: 1,
             },
         },
     ]);

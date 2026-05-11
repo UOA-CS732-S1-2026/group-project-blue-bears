@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import AuthHeader from '../components/AuthHeader'
 import AuthInput from '../components/AuthInput'
 import { registerUser } from '../services/authService'
@@ -87,7 +87,7 @@ function RegisterPage() {
           </button>
 
           <p className="auth-switch">
-            Already have an account? <a href="/login" className="auth-link">Login</a>
+            Already have an account? <Link to="/login" className="auth-link">Login</Link>
           </p>
         </div>
       </main>
