@@ -47,4 +47,16 @@ describe('calcStats', () => {
     expect(result.accuracy).toBe(60);
     expect(result.inaccuracies).toBe(2);
   });
+
+  it('includes recorded wrong key attempts in accuracy', () => {
+    const result = calcStats('hello', 'hello', 60, 5);
+    expect(result.accuracy).toBe(50);
+    expect(result.inaccuracies).toBe(5);
+    expect(result.wpm).toBe(1);
+  });
+
+  it('reports zero accuracy if only wrong keys were recorded', () => {
+    const result = calcStats('hello', '', 1, 3);
+    expect(result).toEqual({ wpm: 0, accuracy: 0, inaccuracies: 3 });
+  });
 });

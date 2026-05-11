@@ -85,6 +85,8 @@ interface RoomState {
   countdownStarted: boolean;
   raceStarted: boolean;
   passageText: string;
+  raceStartAt?: number;
+  raceEndAt?: number;
   finishers: Map<string, FinisherResult>;
   raceTimeout?: NodeJS.Timeout;
   rematchReady: Map<string, boolean>;
@@ -103,6 +105,8 @@ const PRE_RACE_COUNTDOWN_SECONDS = 3;
 // Extra time to allow clients to navigate from result -> game before startAt.
 // This avoids cases where clients start sending progress updates before the server flips raceStarted.
 const REMATCH_NAVIGATION_DELAY_MS = 1000;
+const FALLBACK_RESULT_DELAY_MS = 30000;
+const LOW_ACCURACY_FINISH_THRESHOLD = 0.5;
 
 const buildDefaultResult = (player: RoomPlayer): FinisherResult => ({
   userId: player.userId,
@@ -124,6 +128,27 @@ const buildPlayersSnapshot = (room: RoomState) => room.players.map(buildRoomPlay
 const normalizeRoomId = (roomId: string): string => roomId.trim().toUpperCase();
 
 const isValidRoomCodeFormat = (roomId: string): boolean => ROOM_CODE_PATTERN.test(roomId);
+
+const clampAccuracy = (accuracy: number): number => (
+  Number.isFinite(accuracy) ? Math.max(0, Math.min(100, accuracy)) : 0
+);
+
+const setRaceWindow = (room: RoomState, startAt: number): void => {
+  room.raceStartAt = startAt;
+  room.raceEndAt = startAt + RACE_DURATION_SECONDS * 1000;
+};
+
+const getAccuracyFinishDelayMs = (room: RoomState, accuracy: number): number => {
+  const raceEndAt = room.raceEndAt ?? Date.now();
+  const remainingMs = Math.max(0, raceEndAt - Date.now());
+  const accuracyRatio = clampAccuracy(accuracy) / 100;
+
+  if (accuracyRatio >= LOW_ACCURACY_FINISH_THRESHOLD) {
+    return 0;
+  }
+
+  return Math.round((1 - accuracyRatio) * remainingMs);
+};
 
 const normalizePlayerMetadata = (
   payload: { displayName?: string; avatarKind?: 'guest' | 'initials'; username?: string },
@@ -180,6 +205,7 @@ const emitGameStart = (io: Server, room: RoomState): void => {
   // Generate a fresh passage for each race
   room.passageText = generatePassage();
   const startAt = Date.now() + PRE_RACE_COUNTDOWN_SECONDS * 1000;
+  setRaceWindow(room, startAt);
 
   io.to(room.roomId).emit('game_start', {
     roomId: room.roomId,
@@ -204,6 +230,7 @@ const scheduleRaceStarted = (roomId: string, startAt: number): void => {
   setTimeout(() => {
     const activeRoom = rooms.get(roomId);
     if (activeRoom) {
+      setRaceWindow(activeRoom, startAt);
       activeRoom.raceStarted = true;
     }
   }, delayMs);
@@ -293,10 +320,13 @@ const startCountdown = (io: Server, room: RoomState): void => {
     if (current === 0) {
       clearInterval(countdownInterval);
       room.raceStarted = true;
+      const startAt = Date.now();
+      setRaceWindow(room, startAt);
 
       io.to(room.roomId).emit('race_start', {
         roomId: room.roomId,
         passageText: room.passageText,
+        startAt,
       });
     }
   }, 1000);
@@ -529,13 +559,31 @@ export const registerSocketHandlers = (io: Server): void => {
         userId: payload.userId,
         username: player.displayName,
         wpm: payload.wpm,
-        accuracy: payload.accuracy,
+        accuracy: clampAccuracy(payload.accuracy),
         finished: true,
       });
 
       if (room.finishers.size === 1 && payload.finishedPassage) {
-        // First player finished the passage — end immediately
-        void emitRaceResults(io, room);
+        const delayMs = getAccuracyFinishDelayMs(room, payload.accuracy);
+
+        if (delayMs <= 0) {
+          void emitRaceResults(io, room);
+          return;
+        }
+
+        if (room.raceTimeout) {
+          clearTimeout(room.raceTimeout);
+        }
+
+        room.raceTimeout = setTimeout(() => {
+          const latestRoom = rooms.get(payload.roomId);
+          if (!latestRoom || !latestRoom.raceStarted || latestRoom.finishers.size >= 2) {
+            return;
+          }
+
+          void emitRaceResults(io, latestRoom);
+        }, delayMs);
+        return;
       } else if (room.finishers.size >= 2) {
         // Both players have submitted — end now, cancelling any pending timeout
         if (room.raceTimeout) {
@@ -553,7 +601,7 @@ export const registerSocketHandlers = (io: Server): void => {
             }
 
             void emitRaceResults(io, latestRoom);
-          }, 30000);
+          }, FALLBACK_RESULT_DELAY_MS);
         }
       }
     });

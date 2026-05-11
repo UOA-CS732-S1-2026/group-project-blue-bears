@@ -25,25 +25,37 @@ interface UseGameLogicReturn {
   reset: () => void;
 }
 
-function calcStats(passage: string, input: string, elapsedSeconds: number): GameStats {
+function calcStats(
+  passage: string,
+  input: string,
+  elapsedSeconds: number,
+  recordedInaccuracies = 0
+): GameStats {
   if (input.length === 0 || elapsedSeconds === 0) {
-    return { wpm: 0, accuracy: 100, inaccuracies: 0 };
+    return {
+      wpm: 0,
+      accuracy: recordedInaccuracies > 0 ? 0 : 100,
+      inaccuracies: recordedInaccuracies,
+    };
   }
 
   // Count inaccuracies: characters typed incorrectly at each position
-  let inaccuracies = 0;
+  let typedInaccuracies = 0;
   for (let i = 0; i < input.length; i++) {
-    if (input[i] !== passage[i]) inaccuracies++;
+    if (input[i] !== passage[i]) typedInaccuracies++;
   }
 
   // WPM = (correct chars typed / 5) / minutes elapsed
-  const correctChars = input.length - inaccuracies;
+  const correctChars = input.length - typedInaccuracies;
   const minutes = elapsedSeconds / 60;
   const wpm = Math.round(correctChars / 5 / minutes);
 
-  // Accuracy = correct chars / total typed chars
+  const inaccuracies = Math.max(typedInaccuracies, recordedInaccuracies);
+  const totalAttempts = correctChars + inaccuracies;
+
+  // Accuracy = current correct chars / correct chars plus recorded mistakes.
   const accuracy =
-    input.length > 0 ? Math.round((correctChars / input.length) * 100) : 100;
+    totalAttempts > 0 ? Math.round((correctChars / totalAttempts) * 100) : 100;
 
   return { wpm, accuracy, inaccuracies };
 }
@@ -66,10 +78,12 @@ export function useGameLogic({
   const [timeLeft, setTimeLeft] = useState(totalSeconds);
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [stats, setStats] = useState<GameStats>({ wpm: 0, accuracy: 100, inaccuracies: 0 });
+  const [recordedInaccuracies, setRecordedInaccuracies] = useState(0);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number | null>(null);
   const userInputRef = useRef<string>("");
+  const recordedInaccuraciesRef = useRef(0);
 
   const getElapsedSeconds = useCallback(() => {
     if (!startTimeRef.current) {
@@ -83,7 +97,7 @@ export function useGameLogic({
     (input: string, elapsed: number, finishedPassage: boolean) => {
       if (timerRef.current) clearInterval(timerRef.current);
       setStatus("finished");
-      const finalStats = calcStats(passage, input, elapsed);
+      const finalStats = calcStats(passage, input, elapsed, recordedInaccuraciesRef.current);
       setStats(finalStats);
       onGameEnd?.(finalStats, elapsed, finishedPassage);
     },
@@ -122,9 +136,9 @@ export function useGameLogic({
   // Recalc stats every input change while playing
   useEffect(() => {
     if (status === "playing") {
-      setStats(calcStats(passage, userInput, timeElapsed));
+      setStats(calcStats(passage, userInput, timeElapsed, recordedInaccuracies));
     }
-  }, [userInput, timeElapsed, passage, status]);
+  }, [userInput, timeElapsed, passage, status, recordedInaccuracies]);
 
   const start = useCallback(
     (startAtMs?: number) => {
@@ -141,8 +155,32 @@ export function useGameLogic({
   const handleInput = useCallback(
     (value: string) => {
       if (status !== "playing") return;
-      if (value.length > passage.length) return;
-      if (!passage.startsWith(value)) return;
+
+      const countNewInaccuracies = (nextInput: string) => {
+        let newInaccuracies = 0;
+        const previousLength = userInputRef.current.length;
+
+        for (let i = previousLength; i < nextInput.length; i++) {
+          if (i >= passage.length || nextInput[i] !== passage[i]) {
+            newInaccuracies += 1;
+          }
+        }
+
+        return newInaccuracies;
+      };
+
+      const nextRecordedInaccuracies =
+        recordedInaccuraciesRef.current + countNewInaccuracies(value);
+
+      if (nextRecordedInaccuracies !== recordedInaccuraciesRef.current) {
+        recordedInaccuraciesRef.current = nextRecordedInaccuracies;
+        setRecordedInaccuracies(nextRecordedInaccuracies);
+      }
+
+      if (value.length > passage.length) {
+        setStats(calcStats(passage, userInputRef.current, getElapsedSeconds(), nextRecordedInaccuracies));
+        return;
+      }
 
       setUserInput(value);
 
@@ -158,10 +196,12 @@ export function useGameLogic({
   const reset = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     startTimeRef.current = null;
+    recordedInaccuraciesRef.current = 0;
     setUserInput("");
     setStatus("idle");
     setTimeLeft(totalSeconds);
     setTimeElapsed(0);
+    setRecordedInaccuracies(0);
     setStats({ wpm: 0, accuracy: 100, inaccuracies: 0 });
   }, [totalSeconds]);
 
