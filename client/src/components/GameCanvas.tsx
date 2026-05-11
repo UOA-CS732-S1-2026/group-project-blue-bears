@@ -25,21 +25,20 @@ interface GameCanvasProps {
   raceMeta: { passage: String }
 }
 
-const DRAW_ROPE_NODES = false;
-const SPRITE_SMOOTHING = 40;
-const MAX_SPRITE_PULL = 0.5;
-const SPRITE_PIVOT_POINT = 0.5;
 
 const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentStats, raceMeta }) => {
   // Reference to HTML canvas element for rendering scene.
   const canvas = useRef<HTMLCanvasElement | null>(null);
+
+  const DRAW_ROPE_NODES = false;
+  const MAX_SPRITE_PULL = 0.5;
+  const SPRITE_PIVOT_POINT = 0.5;
 
   // Keep refs to the latest props so the Pixi ticker closure sees updates
   const statusRef = useRef(status);
   const playerStatsRef = useRef(playerStats);
   const opponentStatsRef = useRef(opponentStats);
   const raceMetaRef = useRef(raceMeta);
-  const smoothPullAmountRef = useRef(0);
 
   // Sync refs when props change
   // Note: useEffect is safe here because these are simple assignments
@@ -198,32 +197,25 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentSt
         // Read latest values from refs so the closure sees updates from React
         const playerWpm = Math.max(playerStatsRef.current.wpm, 1);
         const opponentWpm = Math.max(opponentStatsRef.current.wpm, 1);
-        const playerProg = (playerStatsRef.current as any).progress ?? 0;
-        const opponentProg = (opponentStatsRef.current as any).progress ?? 0;
 
-        // Estimate time to completion for player & opponent (with safe numeric coercion)
-        const passageLength = Number(raceMetaRef.current?.passage.length ?? 0);
-        const lettersLeftPlayer = passageLength - (Number(playerProg) / 100) * passageLength;
+        // Calculate pull amount from the WPM gap and clamp it to MAX_SPRITE_PULL.
+        const pullAmount = (playerWpm - opponentWpm) / (playerWpm + opponentWpm) * -MAX_SPRITE_PULL
 
-        // clamped to 300 to minimize exaggerated jumps in the visuals.
-        // Player WPM divided by 12 as WPM/60 * 5 ~= letters/second given average word has 5 letters
-        const playerTimeToCompletion = Math.min(lettersLeftPlayer / (playerWpm / 12), 300);
-
-        const lettersLeftOpponent = passageLength - (Number(opponentProg) / 100) * passageLength;
-        const opponentTimeToCompletion = Math.min(lettersLeftOpponent / (opponentWpm / 12), 300);
-
-        // Scale quadratically to exaggerate the winning effect
-        // Horizontal offset for player sprites.
-        const normalized = (playerTimeToCompletion - opponentTimeToCompletion) / (playerTimeToCompletion + opponentTimeToCompletion);
-        const targetPullAmount = Math.sign(normalized) * Math.pow(Math.abs(normalized), 2) * MAX_SPRITE_PULL;
-
-        // Ease the visual position toward the latest target
-        const smoothing = 1 - Math.exp(-SPRITE_SMOOTHING * dt);
-        smoothPullAmountRef.current += (targetPullAmount - smoothPullAmountRef.current) * smoothing;
+        // Interpolate sprite movement so they ease toward the target pull position.
+        const interpolation = Math.min(1, dt * 10);
+        const lerp = (start: number, end: number) => start + (end - start) * interpolation;
+        const [targetRedX, targetRedY] = NDC(-SPRITE_PIVOT_POINT + pullAmount, -0.18);
+        const [targetBlueX, targetBlueY] = NDC(SPRITE_PIVOT_POINT + pullAmount, -0.18);
 
         // Move sprites into position
-        redSprite.position.set(...NDC(-SPRITE_PIVOT_POINT + smoothPullAmountRef.current, -0.18))
-        blueSprite.position.set(...NDC(SPRITE_PIVOT_POINT + smoothPullAmountRef.current, -0.18))
+        redSprite.position.set(
+          lerp(redSprite.x, targetRedX),
+          lerp(redSprite.y, targetRedY),
+        )
+        blueSprite.position.set(
+          lerp(blueSprite.x, targetBlueX),
+          lerp(blueSprite.y, targetBlueY),
+        )
 
         // Set animation speed depending on WPM
         redSprite.animationSpeed = 0.12 + 0.36 * (playerWpm / 200)
@@ -246,8 +238,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentSt
         blueParticle.py = blueSprite.y + heightOffset;
         rope.points[blueRopeParticleIndex].x = blueParticle.x;
         rope.points[blueRopeParticleIndex].y = blueParticle.y;
-
-        //console.log(`status=${status} ttc(opponent)=${opponentTimeToCompletion.toFixed(2)} ttc(player)=${playerTimeToCompletion.toFixed(2)}`);
 
         if (DRAW_ROPE_NODES)
           drawRopeViz(RopeNodeVisualiser, rope);
