@@ -1,7 +1,7 @@
 import mongoose, { Document, Schema, ObjectId } from 'mongoose';
 
 interface IPlayerSnapshot {
-    userId: ObjectId;
+    userId?: ObjectId | null;
     username: string;
     wpm: number;
     accuracy: number;
@@ -12,7 +12,7 @@ const PlayerSnapshotSchema = new Schema<IPlayerSnapshot>(
         userId: {
             type: Schema.Types.ObjectId,
             ref: 'User',
-            required: true,
+            required: false,
         },
         username: {
             type: String,
