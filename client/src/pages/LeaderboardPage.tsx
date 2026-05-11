@@ -17,7 +17,12 @@ function LeaderboardPage() {
     const userId = localStorage.getItem('userId')
 
     if (!token) {
-      navigate('/login')
+      navigate('/login', {
+        state: {
+          title: 'Please sign in',
+          subtitle: 'Log in to view the leaderboard.',
+        },
+      })
       return
     }
 
