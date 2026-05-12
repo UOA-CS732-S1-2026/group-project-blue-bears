@@ -2,12 +2,12 @@ export interface Player {
   userId: string
   name: string
   avgWpm: number
-  wins: number
+  winRate: number
   totalMatch: number
   isMe?: boolean
 }
 
-export type FilterType = 'AVG WPM' | 'WINS'
+export type FilterType = 'AVG WPM' | 'WIN RATE'
 
 function getRankStyle(rank: number): string {
   if (rank === 1) return 'rank-badge rank-badge--gold'
@@ -28,8 +28,8 @@ function LeaderboardRow({ player, rank, activeFilter }: { player: Player; rank: 
       <span className={`lb-col lb-col--wpm ${activeFilter === 'AVG WPM' ? 'lb-value' : ''}`}>
         {player.avgWpm}
       </span>
-      <span className={`lb-col lb-col--wins ${activeFilter === 'WINS' ? 'lb-value' : ''}`}>
-        {player.wins}
+      <span className={`lb-col lb-col--wins ${activeFilter === 'WIN RATE' ? 'lb-value' : ''}`}>
+        {player.winRate}%
       </span>
       <span className="lb-col lb-col--total">{player.totalMatch}</span>
     </div>

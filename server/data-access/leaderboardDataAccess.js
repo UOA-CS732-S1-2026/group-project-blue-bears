@@ -55,9 +55,18 @@ const getLeaderboard = async (limit = 10) => {
                 username: 1,
                 bestWpm: 1,
                 avgWpm: { $round: ['$avgWpm', 0] },
-                avgAccuracy: { $round: ['$avgAccuracy', 0] },
                 totalMatches: 1,
-                totalWins: 1,
+                winRate: {
+                    $round: [
+                        {
+                            $multiply: [
+                                { $cond: [{ $eq: ['$totalMatches', 0] }, 0, { $divide: ['$totalWins', '$totalMatches'] }] },
+                                100,
+                            ],
+                        },
+                        0,
+                    ],
+                },
             },
         },
     ]);
