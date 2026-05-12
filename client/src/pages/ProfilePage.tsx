@@ -25,7 +25,7 @@ function ProfilePage() {
     if (!token || !userId) {
       navigate('/login', {
         state: {
-          title: 'Please sign in',
+          title: 'Sign In',
           subtitle: 'Log in to view your profile.',
         },
       })
