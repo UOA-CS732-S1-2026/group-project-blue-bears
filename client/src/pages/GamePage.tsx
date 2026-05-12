@@ -143,12 +143,10 @@ const GamePage: React.FC = () => {
           playerStats: {
             wpm: finalStats.wpm,
             accuracy: finalStats.accuracy,
-            inaccuracies: (finalStats as GameStats).inaccuracies ?? 0,
           },
           opponentStats: {
             wpm: finalOpponent.wpm,
             accuracy: finalOpponent.accuracy,
-            inaccuracies: 0,
           },
           duration: formatTime(elapsedRef.current > 0 ? elapsedRef.current : raceDuration - timeLeftRef.current),
         },
@@ -250,10 +248,6 @@ const GamePage: React.FC = () => {
               <span className="game-page__stat-label">WPM</span>
               <span className="game-page__stat-value">{stats.wpm}</span>
             </div>
-            <div className="game-page__stat-item">
-              <span className="game-page__stat-label">Accuracy</span>
-              <span className="game-page__stat-value">{stats.accuracy}%</span>
-            </div>
           </div>
         </div>
 
@@ -284,19 +278,12 @@ const GamePage: React.FC = () => {
               <span className="game-page__stat-label">WPM</span>
               <span className="game-page__stat-value">{opponentStats.wpm}</span>
             </div>
-            <div className="game-page__stat-item">
-              <span className="game-page__stat-label">Accuracy</span>
-              <span className="game-page__stat-value">{opponentStats.accuracy}%</span>
-            </div>
           </div>
         </div>
       </div>
 
       <TypingDisplay passage={racePassage} userInput={userInput} />
 
-      <div className="game-page__inaccuracies">
-        Inaccuracies: <span>{stats.inaccuracies}</span>
-      </div>
     </div>
   );
 };

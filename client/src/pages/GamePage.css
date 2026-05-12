@@ -134,14 +134,3 @@
   to   { opacity: 0.55; }
 }
 
-.game-page__inaccuracies {
-  font-family: "Share Tech Mono", monospace;
-  font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.28);
-  letter-spacing: 0.06em;
-}
-
-.game-page__inaccuracies span {
-  color: #e05c6a;
-  font-weight: 700;
-}

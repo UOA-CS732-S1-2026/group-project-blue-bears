@@ -7,14 +7,12 @@ export interface ProfileData {
     totalWins: number;
     bestWpm: number;
     avgWpm: number;
-    avgAccuracy: number;
 }
 
 export interface PlayerSnapshot {
     userId: string | null;
     username: string;
     wpm: number;
-    accuracy: number;
 }
 
 export interface Match {

@@ -114,10 +114,6 @@ function ProfilePage() {
               <span className="profile-stat-label">Avg WPM</span>
               <span className="profile-stat-value">{profile.avgWpm}</span>
             </div>
-            <div className="profile-stat">
-              <span className="profile-stat-label">Accuracy</span>
-              <span className="profile-stat-value">{profile.avgAccuracy}%</span>
-            </div>
           </div>
         </section>
 
@@ -141,7 +137,6 @@ function ProfilePage() {
                   </span>
                   <span className="profile-history-vs">vs {opponent.username}</span>
                   <span className="profile-history-wpm">{me.wpm} WPM</span>
-                  <span className="profile-history-acc">Accuracy {me.accuracy}%</span>
                   <span className="profile-history-date">{formatDate(match.createdAt)}</span>
                 </div>
               )

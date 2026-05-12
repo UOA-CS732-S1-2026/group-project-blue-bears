@@ -18,11 +18,10 @@ function LobbyExitModal({ isOpen, onCancel, onConfirm }: LobbyExitModalProps) {
         aria-labelledby="exit-dialog-title"
       >
         <h2 id="exit-dialog-title" className="lobby-modal-title">
-          Exit match?
+          Leave lobby?
         </h2>
         <p className="lobby-modal-copy">
-          Exiting this match will be treated as a surrender. Do you still want to
-          leave?
+          Are you sure you want to leave?
         </p>
         <div className="lobby-modal-actions">
           <button className="lobby-modal-btn lobby-modal-cancel" onClick={onCancel}>

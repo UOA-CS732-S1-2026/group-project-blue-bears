@@ -3,8 +3,6 @@ import "./StatsTable.css";
 
 export interface PlayerStats {
   wpm: number;
-  accuracy: number;
-  inaccuracies: number;
 }
 
 interface StatsTableProps {
@@ -30,25 +28,17 @@ const StatRow: React.FC<StatRowProps> = ({ label, playerValue, opponentValue, vi
 
 const StatsTable: React.FC<StatsTableProps> = ({ playerStats, opponentStats, duration }) => {
   const [headingVisible, setHeadingVisible] = useState(false);
-  const [rowsVisible, setRowsVisible] = useState([false, false, false]);
+  const [rowsVisible, setRowsVisible] = useState([false]);
 
   useEffect(() => {
     const headingTimer = setTimeout(() => setHeadingVisible(true), 200);
     const row1Timer = setTimeout(() => {
-      setRowsVisible([true, false, false]);
+      setRowsVisible([true]);
     }, 400);
-    const row2Timer = setTimeout(() => {
-      setRowsVisible([true, true, false]);
-    }, 600);
-    const row3Timer = setTimeout(() => {
-      setRowsVisible([true, true, true]);
-    }, 800);
 
     return () => {
       clearTimeout(headingTimer);
       clearTimeout(row1Timer);
-      clearTimeout(row2Timer);
-      clearTimeout(row3Timer);
     };
   }, []);
 
@@ -72,18 +62,6 @@ const StatsTable: React.FC<StatsTableProps> = ({ playerStats, opponentStats, dur
             playerValue={String(playerStats.wpm)}
             opponentValue={String(opponentStats.wpm)}
             visible={rowsVisible[0]}
-          />
-          <StatRow
-            label="Accuracy"
-            playerValue={`${playerStats.accuracy}%`}
-            opponentValue={`${opponentStats.accuracy}%`}
-            visible={rowsVisible[1]}
-          />
-          <StatRow
-            label="Inaccuracies"
-            playerValue={String(playerStats.inaccuracies)}
-            opponentValue={String(opponentStats.inaccuracies)}
-            visible={rowsVisible[2]}
           />
         </tbody>
       </table>

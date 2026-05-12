@@ -247,7 +247,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentSt
         {
           try {
             app?.ticker.stop();
-            app?.destroy(true, { children: true, texture: true });
+            app?.destroy(false, { children: true, texture: true });
             app = null;
             console.log("Cleaned canvas.")
           } catch (err) {
