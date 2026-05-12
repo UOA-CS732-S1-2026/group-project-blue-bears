@@ -69,6 +69,8 @@ interface RoomPlayer {
   displayName: string;
   avatarKind: 'guest' | 'initials';
   ready: boolean;
+  lastWpm: number;
+  lastAccuracy: number;
 }
 
 interface FinisherResult {
@@ -107,8 +109,8 @@ const REMATCH_NAVIGATION_DELAY_MS = 1000;
 const buildDefaultResult = (player: RoomPlayer): FinisherResult => ({
   userId: player.userId,
   username: player.displayName,
-  wpm: 0,
-  accuracy: 0,
+  wpm: player.lastWpm,
+  accuracy: player.lastAccuracy,
   finished: false,
 });
 
@@ -337,6 +339,8 @@ export const registerSocketHandlers = (io: Server): void => {
         displayName,
         avatarKind,
         ready: false,
+        lastWpm: 0,
+        lastAccuracy: 0,
       });
 
       socket.join(roomId);
@@ -402,6 +406,8 @@ export const registerSocketHandlers = (io: Server): void => {
           displayName,
           avatarKind,
           ready: false,
+          lastWpm: 0,
+          lastAccuracy: 0,
         });
       }
 
@@ -499,6 +505,12 @@ export const registerSocketHandlers = (io: Server): void => {
       }
 
       const clampedProgress = Math.max(0, Math.min(100, payload.progress));
+
+      const player = room.players.find(p => p.userId === payload.userId);
+      if (player) {
+        player.lastWpm = payload.wpm ?? 0;
+        player.lastAccuracy = payload.accuracy ?? 100;
+      }
 
       socket.to(payload.roomId).emit('opponent_progress', {
         roomId: payload.roomId,
@@ -699,6 +711,25 @@ export const registerSocketHandlers = (io: Server): void => {
         console.log(`[roomManager] Cleaning up room ${payload.roomId} after player left result screen`);
         cleanupRoom(payload.roomId);
       }, 30 * 1000);
+    });
+
+    socket.on('leave_lobby', (payload: { roomId: string }) => {
+      const room = rooms.get(payload.roomId);
+      if (!room) return;
+
+      room.players = room.players.filter(p => p.socketId !== socket.id);
+      socketRoomLookup.delete(socket.id);
+      socket.leave(payload.roomId);
+
+      if (room.players.length === 0) {
+        cleanupRoom(payload.roomId);
+      } else {
+        io.to(payload.roomId).emit('opponent_disconnected', {
+          roomId: payload.roomId,
+          message: 'Your opponent left the lobby.',
+        });
+        emitRoomState(io, room);
+      }
     });
 
     socket.on('disconnect', () => {

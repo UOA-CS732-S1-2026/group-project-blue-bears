@@ -112,6 +112,9 @@ function LobbyPage() {
 
   const handleExitConfirm = () => {
     setShowExitDialog(false)
+    if (roomId) {
+      socket.emit('leave_lobby', { roomId })
+    }
     sessionStorage.removeItem(ACTIVE_LOBBY_CODE_KEY)
     sessionStorage.removeItem(ACTIVE_LOBBY_USER_KEY)
     navigate('/')

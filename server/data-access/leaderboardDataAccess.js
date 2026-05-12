@@ -28,6 +28,7 @@ const getLeaderboard = async (limit = 10) => {
             },
         },
         { $unwind: '$players' },
+        { $match: { 'players.userId': { $ne: null } } },
         { $sort: { createdAt: 1 } },
         {
             $group: {
