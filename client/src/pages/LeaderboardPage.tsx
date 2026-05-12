@@ -34,7 +34,7 @@ function LeaderboardPage() {
             userId: e.userId,
             name: e.username,
             avgWpm: e.avgWpm,
-            wins: e.totalWins,
+            winRate: e.winRate,
             totalMatch: e.totalMatches,
             isMe: e.userId === userId,
           }))
@@ -50,8 +50,8 @@ function LeaderboardPage() {
   }, [navigate])
 
   const sorted = [...players].sort((a, b) => {
-    if (filter === 'AVG WPM') return (b.avgWpm - a.avgWpm) || (b.wins - a.wins)
-    if (filter === 'WINS') return (b.wins - a.wins) || (b.avgWpm - a.avgWpm)
+    if (filter === 'AVG WPM') return (b.avgWpm - a.avgWpm) || (b.winRate - a.winRate)
+    if (filter === 'WIN RATE') return (b.winRate - a.winRate) || (b.avgWpm - a.avgWpm)
     return 0
   })
 
@@ -89,7 +89,7 @@ function LeaderboardPage() {
         {/* Filter bar */}
         <div className="lb-filter-bar">
           <span className="lb-filter-label">Filter by</span>
-          {(['AVG WPM', 'WINS'] as FilterType[]).map(f => (
+          {(['AVG WPM', 'WIN RATE'] as FilterType[]).map(f => (
             <button
               key={f}
               className={`lb-filter-btn ${filter === f ? 'lb-filter-btn--active' : ''}`}
@@ -107,7 +107,7 @@ function LeaderboardPage() {
           <div className="lb-table-header">
             <span className="lb-col lb-col--player">[ Player ]</span>
             <span className={`lb-col lb-col--wpm ${filter === 'AVG WPM' ? 'lb-filter-btn--active' : ''}`}>[ AVG WPM ]</span>
-            <span className={`lb-col lb-col--wins ${filter === 'WINS' ? 'lb-filter-btn--active' : ''}`}>[ WINS ]</span>
+            <span className={`lb-col lb-col--wins ${filter === 'WIN RATE' ? 'lb-filter-btn--active' : ''}`}>[ WIN RATE ]</span>
             <span className="lb-col lb-col--total">[ TOTAL MATCH ]</span>
           </div>
 

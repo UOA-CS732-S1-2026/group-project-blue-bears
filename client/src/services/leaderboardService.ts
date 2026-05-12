@@ -6,7 +6,7 @@ export interface LeaderboardEntry {
     bestWpm: number;
     avgWpm: number;
     totalMatches: number;
-    totalWins: number;
+    winRate: number;
 }
 
 export const getLeaderboard = async (token: string, limit = 50): Promise<LeaderboardEntry[]> => {
