@@ -122,6 +122,15 @@ npm install
 npm run dev
 ```
 
+If `npm run dev` fails locally after `npm install`, try building first and then running the dev server:
+
+```bash
+npm run build
+npm run dev
+```
+
+This can resolve issues caused by TypeScript build steps or mismatched dev-dependency states on some machines. If problems persist, confirm your Node.js version and ensure dev dependencies were installed successfully.
+
 ### Server
 
 ```bash
@@ -131,6 +140,13 @@ npm run dev
 ```
 
 The client uses Vite's default dev server and the server listens on port `5000` by default.
+
+## Hosting
+
+- **Frontend:** Vercel
+	- Hosting provider used for the frontend; Vercel's free tier and free trial work well for serving the Vite-built app.
+- **Backend / Server:** Render
+	- The server is deployed on Render. Note: on Render's free tier the service goes to sleep after ~15 minutes of inactivity, which requires a ~1 minute cold-start/wake-up delay when the app is next requested.
 
 ## Team Members
 
