@@ -60,7 +60,6 @@ The primary win condition is **finishing the passage first**. Two players are pr
 
 - **First to complete**: The player who types all words first wins immediately and ends the race
 - **Timeout fallback**: If no one finishes within 60 seconds, the race ends and the player with the highest WPM (words per minute) is declared the winner
-- **Accuracy matters**: Both WPM and accuracy are tracked and persist in match results; the winner is determined solely by completion order or WPM on timeout, but accuracy is recorded for leaderboard and profile history
 
 ### Passage Generation
 
