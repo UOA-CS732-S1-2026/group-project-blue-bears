@@ -9,7 +9,7 @@ function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const successMessage = location.state?.message
-  const title = location.state?.title ?? 'Welcome Back'
+  const title = location.state?.title ?? 'Sign In'
   const subtitle = location.state?.subtitle ?? 'Log in to your account to continue'
 
   const [emailOrUsername, setEmailOrUsername] = useState('')

@@ -7,6 +7,8 @@ import './AuthPages.css'
 
 function RegisterPage() {
   const navigate = useNavigate()
+  const title = 'Sign Up'
+  const subtitle = 'Create an account to get started'
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [username, setUsername] = useState('')
@@ -34,8 +36,12 @@ function RegisterPage() {
       <AuthHeader back={() => navigate('/')}/>
       <main className="auth-main">
         <div className="auth-card">
+          <h1 className="auth-title">{title}</h1>
+          <p className="auth-subtitle">{subtitle}</p>
 
-          <p style={{ color: 'var(--accent-red)', fontSize: '13px', minHeight: '18px' }}>{error}</p>
+          {error && (
+            <p style={{ color: 'var(--accent-red)', fontSize: '13px', margin: 0 }}>{error}</p>
+          )}
 
           <div className="auth-field-row">
             <AuthInput

@@ -19,7 +19,7 @@ function LeaderboardPage() {
     if (!token) {
       navigate('/login', {
         state: {
-          title: 'Please sign in',
+          title: 'Sign In',
           subtitle: 'Log in to view the leaderboard.',
         },
       })
