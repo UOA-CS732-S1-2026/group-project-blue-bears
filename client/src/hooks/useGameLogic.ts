@@ -5,7 +5,6 @@ export type GameStatus = "idle" | "playing" | "finished";
 export interface GameStats {
   wpm: number;
   accuracy: number;
-  inaccuracies: number;
 }
 
 interface UseGameLogicOptions {
@@ -25,27 +24,16 @@ interface UseGameLogicReturn {
   reset: () => void;
 }
 
-function calcStats(passage: string, input: string, elapsedSeconds: number): GameStats {
+function calcStats(_passage: string, input: string, elapsedSeconds: number): GameStats {
   if (input.length === 0 || elapsedSeconds === 0) {
-    return { wpm: 0, accuracy: 100, inaccuracies: 0 };
+    return { wpm: 0, accuracy: 100 };
   }
 
-  // Count inaccuracies: characters typed incorrectly at each position
-  let inaccuracies = 0;
-  for (let i = 0; i < input.length; i++) {
-    if (input[i] !== passage[i]) inaccuracies++;
-  }
-
-  // WPM = (correct chars typed / 5) / minutes elapsed
-  const correctChars = input.length - inaccuracies;
+  // WPM = (chars typed / 5) / minutes elapsed — all chars are correct since incorrect input is rejected
   const minutes = elapsedSeconds / 60;
-  const wpm = Math.round(correctChars / 5 / minutes);
+  const wpm = Math.round(input.length / 5 / minutes);
 
-  // Accuracy = correct chars / total typed chars
-  const accuracy =
-    input.length > 0 ? Math.round((correctChars / input.length) * 100) : 100;
-
-  return { wpm, accuracy, inaccuracies };
+  return { wpm, accuracy: 100 };
 }
 
 function formatTime(seconds: number): string {
@@ -65,7 +53,7 @@ export function useGameLogic({
   const [status, setStatus] = useState<GameStatus>("idle");
   const [timeLeft, setTimeLeft] = useState(totalSeconds);
   const [timeElapsed, setTimeElapsed] = useState(0);
-  const [stats, setStats] = useState<GameStats>({ wpm: 0, accuracy: 100, inaccuracies: 0 });
+  const [stats, setStats] = useState<GameStats>({ wpm: 0, accuracy: 100 });
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number | null>(null);
@@ -162,7 +150,7 @@ export function useGameLogic({
     setStatus("idle");
     setTimeLeft(totalSeconds);
     setTimeElapsed(0);
-    setStats({ wpm: 0, accuracy: 100, inaccuracies: 0 });
+    setStats({ wpm: 0, accuracy: 100 });
   }, [totalSeconds]);
 
   return { userInput, status, timeLeft, timeElapsed, stats, start, handleInput, reset };

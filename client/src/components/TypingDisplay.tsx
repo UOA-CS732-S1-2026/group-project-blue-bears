@@ -6,7 +6,7 @@ interface TypingDisplayProps {
   userInput: string;     // what the user has typed so far
 }
 
-type CharState = "correct" | "incorrect" | "pending";
+type CharState = "correct" | "pending";
 
 interface CharData {
   char: string;
@@ -20,7 +20,7 @@ const TypingDisplay: React.FC<TypingDisplayProps> = ({ passage, userInput }) => 
       const isCursor = i === userInput.length;
       let state: CharState = "pending";
       if (i < userInput.length) {
-        state = userInput[i] === char ? "correct" : "incorrect";
+        state = "correct";
       }
       return { char, state, isCursor };
     });

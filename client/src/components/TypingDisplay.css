@@ -27,11 +27,6 @@
   color: rgba(255, 255, 255, 0.85);
 }
 
-.typing-display__char--incorrect {
-  color: #e05c6a;
-  background: rgba(224, 92, 106, 0.15);
-  border-radius: 2px;
-}
 
 /* Blinking cursor */
 .typing-display__char--cursor {

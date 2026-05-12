@@ -5,7 +5,6 @@ export interface LeaderboardEntry {
     username: string;
     bestWpm: number;
     avgWpm: number;
-    avgAccuracy: number;
     totalMatches: number;
     totalWins: number;
 }
