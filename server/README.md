@@ -4,7 +4,7 @@ Express + TypeScript backend for Type-of-War, with Socket.IO for real-time race 
 
 For full project documentation, deployment notes, and setup instructions see the [root README](../README.md).
 
-## Render Free Tier Cold Start
+## Render Free Tier
 
 This server is hosted on Render's free tier. **After 15 minutes of inactivity the server sleeps.** The first request after an idle period may take **up to 1 minute** to respond while the server wakes up. Subsequent requests are unaffected.
 
