@@ -12,7 +12,7 @@ interface RoomProbePayload {
   players: unknown[]
 }
 
-function JoinLobbyCodePage() {
+function JoinLobbyPage() {
   const navigate = useNavigate()
   const { socket, connected } = useSocket()
   const [code, setCode] = useState('')
@@ -125,4 +125,4 @@ function JoinLobbyCodePage() {
   )
 }
 
-export default JoinLobbyCodePage
+export default JoinLobbyPage
