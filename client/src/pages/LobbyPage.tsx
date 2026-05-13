@@ -55,6 +55,8 @@ function LobbyPage() {
   const storedLobbyUserId = sessionStorage.getItem(ACTIVE_LOBBY_USER_KEY)
   const userIdRef = useRef(storedUserId || locationState.userId || storedLobbyUserId || crypto.randomUUID())
   const requestedRoomRef = useRef(false)
+  const skipCleanupRef = useRef(false)
+  const roomIdRef = useRef(roomId)
   const [showExitDialog, setShowExitDialog] = useState(false)
   const [didCopyRoomCode, setDidCopyRoomCode] = useState(false)
   const [identityReady, setIdentityReady] = useState(!authToken)
@@ -111,6 +113,7 @@ function LobbyPage() {
   }
 
   const handleExitConfirm = () => {
+    skipCleanupRef.current = true
     setShowExitDialog(false)
     if (roomId) {
       socket.emit('leave_lobby', { roomId })
@@ -188,6 +191,23 @@ function LobbyPage() {
 
   useEffect(() => {
     sessionStorage.setItem(ACTIVE_LOBBY_USER_KEY, userIdRef.current)
+  }, [])
+
+  useEffect(() => {
+    roomIdRef.current = roomId
+  }, [roomId])
+
+  // Emit leave_lobby on unmount for any navigation not handled by handleExitConfirm
+  // (e.g. clicking the logo, browser back, etc.)
+  useEffect(() => {
+    return () => {
+      if (!skipCleanupRef.current && roomIdRef.current) {
+        socket.emit('leave_lobby', { roomId: roomIdRef.current })
+        sessionStorage.removeItem(ACTIVE_LOBBY_CODE_KEY)
+        sessionStorage.removeItem(ACTIVE_LOBBY_USER_KEY)
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -298,6 +318,7 @@ function LobbyPage() {
     }
 
     const handleGameStart = (payload: GameStartPayload) => {
+      skipCleanupRef.current = true
       navigate('/game', {
         state: {
           roomId: payload.roomId,
