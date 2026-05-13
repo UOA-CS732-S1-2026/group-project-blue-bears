@@ -11,6 +11,7 @@ interface AuthInputProps {
   showToggle?: boolean
 }
 
+// Open-eye icon indicating that the password is currently visible.
 function EyeIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -20,6 +21,7 @@ function EyeIcon() {
   )
 }
 
+// Closed-eye icon indicating that the password is currently hidden.
 function EyeOffIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

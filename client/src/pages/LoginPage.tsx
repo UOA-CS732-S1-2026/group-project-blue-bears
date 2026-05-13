@@ -17,6 +17,9 @@ function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // Submits the login form to the auth service.
+  // On success: stores credentials in localStorage and navigates home.
+  // On failure: displays the error message returned by the service.
   const handleLogin = async () => {
     setError('')
     setLoading(true)
