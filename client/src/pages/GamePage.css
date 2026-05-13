@@ -44,8 +44,8 @@
 }
 
 .game-page__player-card--you {
-  background: linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(255, 152, 0, 0.05) 100%);
-  border: 2px solid rgba(255, 152, 0, 0.3);
+  background: linear-gradient(135deg, rgba(0, 106, 255, 0.1) 0%, rgba(0, 248, 223, 0.05) 100%);
+  border: 2px solid rgba(2, 225, 255, 0.3);
 }
 
 .game-page__player-card--them {
