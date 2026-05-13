@@ -1,6 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from 'cors';
+import jwt from 'jsonwebtoken';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import authRoutes from './routes/auth';
@@ -32,6 +33,31 @@ app.use('/api', protectedRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Server is running' });
+});
+
+io.use((socket, next) => {
+  const token = (socket.handshake.auth as { token?: string }).token;
+  if (!token) return next(); // guest — no enforcement
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    socket.data.userId = decoded.userId;
+
+    // Find any existing authenticated socket for this userId and kick it.
+    // Using socket.data (set at connect-time on the live object) avoids the stale-ID
+    // problem of a separate Map: reconnects get a new ID but socket.data.userId stays
+    // accurate. The incoming socket is not yet in io.sockets.sockets during middleware.
+    for (const [, existing] of io.sockets.sockets) {
+      if (existing.data?.userId === decoded.userId) {
+        existing.emit('session_expired', { reason: 'signed_in_elsewhere' });
+        break;
+      }
+    }
+
+    next();
+  } catch {
+    next(); // invalid token — treat as guest
+  }
 });
 
 registerSocketHandlers(io);
