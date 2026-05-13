@@ -12,6 +12,7 @@ function LeaderboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Auth gate + data fetch on mount
   useEffect(() => {
     const token = localStorage.getItem('token')
     const userId = localStorage.getItem('userId')
@@ -29,6 +30,9 @@ function LeaderboardPage() {
     const fetchData = async () => {
       try {
         const entries = await getLeaderboard(token)
+
+        // Map API response to the Player interface expected by LeaderboardRow.
+        // isMe flags the current user's row for highlighting and pinning.
         setPlayers(
           entries.map(e => ({
             userId: e.userId,
@@ -49,6 +53,7 @@ function LeaderboardPage() {
     void fetchData()
   }, [navigate])
 
+  // Sorts the players based on the active filter, with a secondary sort to break ties.
   const sorted = [...players].sort((a, b) => {
     if (filter === 'AVG WPM') return (b.avgWpm - a.avgWpm) || (b.winRate - a.winRate)
     if (filter === 'WIN RATE') return (b.winRate - a.winRate) || (b.avgWpm - a.avgWpm)

@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom"
 
-
 interface AuthHeaderProps {
   showAuth?: boolean
   center?: React.ReactNode
@@ -8,6 +7,8 @@ interface AuthHeaderProps {
   back?: () => void
 }
 
+// Attempts to extract the username from a JWT stored in localStorage. 
+// Falls back to null if the token is missing, malformed, or lacks a username claim.
 function getUsernameFromToken(): string | null {
   const token = localStorage.getItem('token')
   if (!token) return null
@@ -23,6 +24,7 @@ function AuthHeader({ showAuth, center, exit, back }: AuthHeaderProps) {
   const isLoggedIn = !!localStorage.getItem('token')
   const username = localStorage.getItem('username') ?? getUsernameFromToken()
 
+  // Clears all auth-related items from localStorage and redirects the user to the home page.
   const handleLogout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('userId')

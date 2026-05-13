@@ -17,6 +17,9 @@ function RegisterPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // Submits the registration form to the auth service.
+  // On success: redirects to /login with a confirmation message.
+  // On failure: surfaces the error returned by the service.
   const handleRegister = async () => {
     setError('')
     setLoading(true)

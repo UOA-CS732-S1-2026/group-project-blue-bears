@@ -12,7 +12,7 @@ interface RoomProbePayload {
   players: unknown[]
 }
 
-function JoinLobbyCodePage() {
+function JoinLobbyPage() {
   const navigate = useNavigate()
   const { socket, connected } = useSocket()
   const [code, setCode] = useState('')
@@ -21,6 +21,8 @@ function JoinLobbyCodePage() {
   const pendingCodeRef = useRef('')
   const timeoutRef = useRef<number | null>(null)
 
+  // Validates the input and emits a `probe_room` event to the server.
+  // Guards against empty input, duplicate submissions, and disconnected sockets.
   const handleJoin = () => {
     const roomCode = code.trim().toUpperCase()
 
@@ -47,6 +49,7 @@ function JoinLobbyCodePage() {
     }, 5000)
   }
 
+  // Handles the server's response to the `probe_room` event.
   useEffect(() => {
     const handleRoomProbe = (payload: RoomProbePayload) => {
       const roomCode = pendingCodeRef.current
@@ -122,4 +125,4 @@ function JoinLobbyCodePage() {
   )
 }
 
-export default JoinLobbyCodePage
+export default JoinLobbyPage
