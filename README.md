@@ -45,12 +45,64 @@ Main routes currently used by the app include:
 
 - Real-time 1v1 typing races using Socket.IO
 - Lobby creation and room joining for multiplayer matches
-- Passage retrieval from the Quotable API
+- Passage retrieval from local word list
 - JWT-based authentication with bcrypt password hashing
 - Match result storage in MongoDB
 - Profile and history views for authenticated users
 - Global leaderboard support
 - Typing game UI with rope/tug-of-war visuals and result summaries
+
+## Game Logic
+
+### Win Condition
+
+The primary win condition is **finishing the passage first**. Two players are presented with a randomly-generated 50-word passage and must type it as accurately as possible:
+
+- **First to complete**: The player who types all words first wins immediately and ends the race
+- **Timeout fallback**: If no one finishes within 60 seconds, the race ends and the player with the highest WPM (words per minute) is declared the winner
+
+### Passage Generation
+
+- Passages are generated server-side from a local word list (`commonWords.json`)
+- Each race gets a fresh 50-word passage randomly selected from the word list
+- Passages are deterministic per game (both players type the same passage simultaneously)
+
+### Match Flow
+
+1. Players join a lobby using room codes or by creating a new room
+2. Both players must reach "ready" state
+3. A 3-second countdown begins
+4. Race starts and progress is tracked in real-time via Socket.IO
+5. First player to complete or highest WPM at 60 seconds wins
+6. Race results are persisted to MongoDB with winner, WPM, and accuracy for both players
+
+## Testing
+
+Tests are organized by module and located in `__tests__` directories within both client and server:
+
+### Client Tests
+
+- `src/__tests__/services/authService.test.ts` - Authentication service (login, registration)
+- `src/__tests__/utils/calcStats.test.ts` - Typing statistics calculation (WPM, accuracy)
+- `src/__tests__/utils/formatTime.test.ts` - Time formatting utilities
+
+### Server Tests
+
+- `src/__tests__/middleware/authenticate.test.ts` - JWT authentication middleware
+- `src/__tests__/routes/auth.test.ts` - Authentication endpoints
+- `src/__tests__/routes/api.test.ts` - Protected API routes
+
+### Running Tests
+
+```bash
+# Client tests
+cd client
+npm test
+
+# Server tests
+cd server
+npm test
+```
 
 ## Tech Stack
 
@@ -70,6 +122,15 @@ npm install
 npm run dev
 ```
 
+If `npm run dev` fails locally after `npm install`, try building first and then running the dev server:
+
+```bash
+npm run build
+npm run dev
+```
+
+This can resolve issues caused by TypeScript build steps or mismatched dev-dependency states on some machines. If problems persist, confirm your Node.js version and ensure dev dependencies were installed successfully.
+
 ### Server
 
 ```bash
@@ -79,6 +140,13 @@ npm run dev
 ```
 
 The client uses Vite's default dev server and the server listens on port `5000` by default.
+
+## Hosting
+
+- **Frontend:** Vercel
+	- Hosting provider used for the frontend; Vercel's free tier and free trial work well for serving the Vite-built app.
+- **Backend / Server:** Render
+	- The server is deployed on Render. Note: on Render's free tier the service goes to sleep after ~15 minutes of inactivity, which requires a ~1 minute cold-start/wake-up delay when the app is next requested.
 
 ## Team Members
 
