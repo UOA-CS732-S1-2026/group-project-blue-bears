@@ -149,27 +149,27 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentSt
       backgroundSprite.position.set(0, 0);
       backgroundSprite.setSize(app.screen.width, app.screen.height);
 
-      const redSprite = createAnimatedSprite(
+      const playerSprite = createAnimatedSprite(
         spritesheet.animations["player-pull"], // ANIMATION
         150, 150, // WIDTH, HEIGHT
         ...NDC(-SPRITE_PIVOT_POINT, -0.18), // POSITION
       );
-      redSprite.tint = 'red';
+      playerSprite.tint = '#14a2f5';
 
-      const blueSprite = createAnimatedSprite(
+      const opponentSprite = createAnimatedSprite(
         spritesheet.animations["player-pull"],
         150, 150,
         ...NDC(SPRITE_PIVOT_POINT, -0.18),
         true, // Flip horizontally
       );
-      blueSprite.tint = 'blue'
+      opponentSprite.tint = 'red'
 
       const rope = CreateRope(...NDC(-1.1, -0.15), ...NDC(1.1, -0.15), 25);
 
-      const redRopeParticleIndex = findClosestRopeParticleIndex(rope, redSprite.x, redSprite.y);
-      const blueRopeParticleIndex = findClosestRopeParticleIndex(rope, blueSprite.x, blueSprite.y);
-      rope.particles[redRopeParticleIndex].pinned = true;
-      rope.particles[blueRopeParticleIndex].pinned = true;
+      const playerRopeParticleIndex = findClosestRopeParticleIndex(rope, playerSprite.x, playerSprite.y);
+      const opponentRopeParticleIndex = findClosestRopeParticleIndex(rope, opponentSprite.x, opponentSprite.y);
+      rope.particles[playerRopeParticleIndex].pinned = true;
+      rope.particles[opponentRopeParticleIndex].pinned = true;
 
       // MeshRope for stylization
       const ropeTextureAsset = await Assets.load(ropeTexture);
@@ -183,8 +183,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentSt
       app.stage.addChild(
         backgroundSprite,
         meshRope,
-        redSprite,
-        blueSprite,
+        playerSprite,
+        opponentSprite,
         RopeNodeVisualiser,
       );
 
@@ -204,40 +204,40 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ status, playerStats, opponentSt
         // Interpolate sprite movement so they ease toward the target pull position.
         const interpolation = Math.min(1, dt * 10);
         const lerp = (start: number, end: number) => start + (end - start) * interpolation;
-        const [targetRedX, targetRedY] = NDC(-SPRITE_PIVOT_POINT + pullAmount, -0.18);
-        const [targetBlueX, targetBlueY] = NDC(SPRITE_PIVOT_POINT + pullAmount, -0.18);
+        const [playerX, playerY] = NDC(-SPRITE_PIVOT_POINT + pullAmount, -0.18);
+        const [opponentX, opponentY] = NDC(SPRITE_PIVOT_POINT + pullAmount, -0.18);
 
         // Move sprites into position
-        redSprite.position.set(
-          lerp(redSprite.x, targetRedX),
-          lerp(redSprite.y, targetRedY),
+        playerSprite.position.set(
+          lerp(playerSprite.x, playerX),
+          lerp(playerSprite.y, playerY),
         )
-        blueSprite.position.set(
-          lerp(blueSprite.x, targetBlueX),
-          lerp(blueSprite.y, targetBlueY),
+        opponentSprite.position.set(
+          lerp(opponentSprite.x, opponentX),
+          lerp(opponentSprite.y, opponentY),
         )
 
         // Set animation speed depending on WPM
-        redSprite.animationSpeed = 0.12 + 0.36 * (playerWpm / 200)
-        blueSprite.animationSpeed = 0.12 + 0.36 * (opponentWpm / 200)
+        playerSprite.animationSpeed = 0.12 + 0.36 * (playerWpm / 200)
+        opponentSprite.animationSpeed = 0.12 + 0.36 * (opponentWpm / 200)
 
         // Move the pinned rope particles to follow their sprites so the rope deforms correctly
-        const heightOffset = redSprite.getSize().height * -0.05
-        const redParticle = rope.particles[redRopeParticleIndex];
-        redParticle.x = redSprite.x;
-        redParticle.y = redSprite.y + heightOffset;
-        redParticle.px = redSprite.x;
-        redParticle.py = redSprite.y + heightOffset;
-        rope.points[redRopeParticleIndex].x = redParticle.x;
-        rope.points[redRopeParticleIndex].y = redParticle.y;
+        const heightOffset = playerSprite.getSize().height * -0.05
+        const playerParticle = rope.particles[playerRopeParticleIndex];
+        playerParticle.x = playerSprite.x;
+        playerParticle.y = playerSprite.y + heightOffset;
+        playerParticle.px = playerSprite.x;
+        playerParticle.py = playerSprite.y + heightOffset;
+        rope.points[playerRopeParticleIndex].x = playerParticle.x;
+        rope.points[playerRopeParticleIndex].y = playerParticle.y;
 
-        const blueParticle = rope.particles[blueRopeParticleIndex];
-        blueParticle.x = blueSprite.x + heightOffset*1.5;
-        blueParticle.y = blueSprite.y;
-        blueParticle.px = blueSprite.x;
-        blueParticle.py = blueSprite.y + heightOffset;
-        rope.points[blueRopeParticleIndex].x = blueParticle.x;
-        rope.points[blueRopeParticleIndex].y = blueParticle.y;
+        const opponentParticle = rope.particles[opponentRopeParticleIndex];
+        opponentParticle.x = opponentSprite.x + heightOffset;
+        opponentParticle.y = opponentSprite.y;
+        opponentParticle.px = opponentSprite.x;
+        opponentParticle.py = opponentSprite.y + heightOffset;
+        rope.points[opponentRopeParticleIndex].x = opponentParticle.x;
+        rope.points[opponentRopeParticleIndex].y = opponentParticle.y;
 
         if (DRAW_ROPE_NODES)
           drawRopeViz(RopeNodeVisualiser, rope);

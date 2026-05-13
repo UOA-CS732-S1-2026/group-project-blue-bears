@@ -22,7 +22,7 @@ export const createAnimatedSprite = (
 Changes animation of a sprite.
   Usage e.g.
 
-  changeAnimation(redSprite, spritesheet.animations['player-pull-blue'], 0.12);
+  changeAnimation(playerSprite, spritesheet.animations['player-pull-blue'], 0.12);
 */
 export const changeAnimation = (
   sprite: AnimatedSprite,

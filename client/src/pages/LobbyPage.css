@@ -128,14 +128,14 @@
   left: 4px;
   top: 128px;
   border-radius: 0 20px 20px 0;
-  box-shadow: 0 0 8px #ff4242;
+  box-shadow: 0 0 8px #1139eb;
 }
 
 .lobby-card-right {
   right: 4px;
   top: 128px;
   border-radius: 20px 0 0 20px;
-  box-shadow: 0 0 8px #1139eb;
+  box-shadow: 0 0 8px #ff4242;
 }
 
 .lobby-card-meta {
@@ -180,7 +180,7 @@
 .lobby-portrait-left {
   border-radius: 0 20px 0 0;
   /* solid red background for left player */
-  background: #ff4242;
+  background: #1139eb;
   color: #ffffff;
 }
 
@@ -188,7 +188,7 @@
 .lobby-portrait-right {
   border-radius: 20px 0 0 0;
   /* solid blue background for right player */
-  background: #1139eb;
+  background: #ff4242;
   color: #ffffff;
 }
 
